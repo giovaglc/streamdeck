@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
-"""Stream Deck - daemon de Windows.
+"""Stream Deck - daemon de Windows (Firebase Auth + Realtime Database).
 
-Se conecta a Supabase con TU MISMA cuenta de email/contraseña, lee los botones
-que diseñas en el móvil, ejecuta las acciones definidas en bindings.json y
-publica el volumen real para que los sliders se sincronicen.
+Se conecta con tu cuenta de correo/contraseña, lee el layout que diseñas en el
+móvil, ejecuta las acciones de bindings.json y publica el volumen real.
 
-No abre ningún puerto: solo hace conexiones salientes.
+No abre ningún puerto: solo conexiones salientes a Firebase.
 """
 import ctypes
-import datetime
 import json
 import os
 import subprocess
@@ -29,7 +27,7 @@ try:
     from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume, ISimpleAudioVolume
     from comtypes import CLSCTX_ALL
     PYCAW = True
-except Exception as exc:  # no instalado o no Windows
+except Exception as exc:
     PYCAW = False
     print("[aviso] pycaw no disponible (%s). Los sliders no funcionarán." % exc)
 
@@ -135,7 +133,6 @@ def set_master_volume(level):
 
 
 def audio_sessions():
-    """Devuelve {process_lower: (nombre_real, control, volumen_actual)}."""
     out = {}
     if not PYCAW:
         return out
@@ -212,106 +209,85 @@ def run_action(action):
         print("[accion] error:", action, "->", exc)
 
 
-# ---------------------------------------------------------------- Supabase REST
-class Supabase:
-    def __init__(self, url, anon_key, email, password):
-        self.url = url.rstrip("/")
-        self.anon = anon_key
+# ---------------------------------------------------------------- Firebase REST
+class Firebase:
+    def __init__(self, api_key, database_url, email, password):
+        self.api_key = api_key
+        self.base = database_url.rstrip("/") + "/decks"
         self.email = email
         self.password = password
         self.token = None
-        self.refresh_token_value = None
+        self.refresh_token = None
         self.uid = None
         self.http = requests.Session()
 
-    def _headers(self):
-        return {
-            "apikey": self.anon,
-            "Authorization": "Bearer " + (self.token or self.anon),
-            "Content-Type": "application/json",
-        }
+    def _auth_error(self, response):
+        if response.status_code in (401, 403):
+            return True
+        try:
+            return "auth" in (response.json().get("error") or "").lower()
+        except Exception:
+            return False
 
-    def _auth_request(self, grant, payload):
+    def login(self):
         r = self.http.post(
-            self.url + "/auth/v1/token?grant_type=" + grant,
-            headers={"apikey": self.anon, "Content-Type": "application/json"},
-            json=payload,
+            "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword",
+            params={"key": self.api_key},
+            json={"email": self.email, "password": self.password, "returnSecureToken": True},
             timeout=20,
         )
         r.raise_for_status()
-        return r.json()
-
-    def login(self):
-        data = self._auth_request("password", {"email": self.email, "password": self.password})
-        self.token = data["access_token"]
-        self.refresh_token_value = data.get("refresh_token")
-        self.uid = data["user"]["id"]
+        data = r.json()
+        self.token = data["idToken"]
+        self.refresh_token = data.get("refreshToken")
+        self.uid = data["localId"]
         print("[auth] sesión iniciada como", self.email)
 
     def renew(self):
         try:
-            if self.refresh_token_value:
-                data = self._auth_request(
-                    "refresh_token", {"refresh_token": self.refresh_token_value}
+            if self.refresh_token:
+                r = self.http.post(
+                    "https://securetoken.googleapis.com/v1/token",
+                    params={"key": self.api_key},
+                    json={"grant_type": "refresh_token", "refresh_token": self.refresh_token},
+                    timeout=20,
                 )
+                r.raise_for_status()
+                data = r.json()
                 self.token = data["access_token"]
-                self.refresh_token_value = data.get("refresh_token", self.refresh_token_value)
+                self.refresh_token = data.get("refresh_token", self.refresh_token)
                 return
         except Exception:
             pass
         self.login()
 
-    def request(self, method, path, headers=None, **kwargs):
-        url = self.url + path
-        h = self._headers()
-        if headers:
-            h.update(headers)
-        r = self.http.request(method, url, headers=h, timeout=20, **kwargs)
-        if r.status_code in (401, 403):
+    def url(self, path=""):
+        return "%s/%s%s.json?auth=%s" % (self.base, self.uid, path, self.token)
+
+    def request(self, method, path="", **kwargs):
+        url = self.url(path)
+        r = self.http.request(method, url, timeout=20, **kwargs)
+        if self._auth_error(r):
             self.renew()
-            h = self._headers()
-            if headers:
-                h.update(headers)
-            r = self.http.request(method, url, headers=h, timeout=20, **kwargs)
+            r = self.http.request(method, self.url(path), timeout=20, **kwargs)
         return r
 
-    def get_state(self):
-        r = self.request(
-            "GET",
-            "/rest/v1/deck_state?user_id=eq.%s&select=*" % self.uid,
-        )
+    def get_deck(self):
+        r = self.request("GET")
         if r.status_code != 200:
-            print("[supabase] get_state:", r.status_code, r.text[:200])
-            return None
-        rows = r.json()
-        return rows[0] if rows else None
+            print("[firebase] get:", r.status_code, r.text[:200])
+            return {}
+        return r.json() or {}
 
-    def patch_state(self, patch):
-        r = self.request(
-            "PATCH",
-            "/rest/v1/deck_state?user_id=eq.%s" % self.uid,
-            json=patch,
-            headers={"Prefer": "return=minimal"},
-        )
+    def patch(self, fields):
+        r = self.request("PATCH", json=fields)
         if r.status_code not in (200, 204):
-            print("[supabase] patch_state:", r.status_code, r.text[:200])
+            print("[firebase] patch:", r.status_code, r.text[:200])
 
-    def pending_commands(self):
-        r = self.request(
-            "GET",
-            "/rest/v1/deck_commands?user_id=eq.%s&processed_at=is.null"
-            "&select=*&order=created_at.asc&limit=25" % self.uid,
-        )
-        return r.json() if r.status_code == 200 else []
-
-    def mark_processed(self, command_id):
-        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        self.request(
-            "PATCH",
-            "/rest/v1/deck_commands?id=eq.%s" % command_id,
-            json={"processed_at": now},
-            headers={"Prefer": "return=minimal"},
-        )
+    def delete(self, path):
+        r = self.request("DELETE", path)
+        if r.status_code not in (200, 204):
+            print("[firebase] delete:", r.status_code, r.text[:200])
 
 
 # ---------------------------------------------------------------- config
@@ -343,10 +319,8 @@ def main():
     cfg = load_json(CONFIG_PATH, EXAMPLE_CONFIG)
     load_json(BINDINGS_PATH, EXAMPLE_BINDINGS)
 
-    supa = Supabase(
-        cfg["supabase_url"], cfg["supabase_anon_key"], cfg["email"], cfg["password"]
-    )
-    supa.login()
+    fb = Firebase(cfg["firebase_api_key"], cfg["database_url"], cfg["email"], cfg["password"])
+    fb.login()
 
     poll = float(cfg.get("poll_ms", 300)) / 1000.0
     bindings = load_bindings()
@@ -356,6 +330,7 @@ def main():
     last_presence = 0
     last_bindings_hash = None
     last_audio = None
+    processed = set()
 
     print("=" * 58)
     print(" Stream Deck daemon en marcha")
@@ -365,58 +340,48 @@ def main():
 
     while True:
         try:
-            # recargar bindings si los editas (asi no hay que reiniciar)
             mtime = os.path.getmtime(BINDINGS_PATH)
             if mtime != bindings_mtime:
                 bindings = load_bindings()
                 bindings_mtime = mtime
                 print("[bindings] recargados")
 
-            state = supa.get_state()
+            deck = fb.get_deck()
             now = time.time()
 
-            if state:
-                # publicar la lista de ids con funcion (para que el movil lo marque)
+            if deck:
                 bh = json.dumps(bindings, sort_keys=True)
                 if bh != last_bindings_hash:
-                    supa.patch_state({"bindings": bindings})
+                    fb.patch({"bindings": bindings})
                     last_bindings_hash = bh
 
-                # aplicar volúmenes deseados por el móvil
-                desired = state.get("desired_audio") or {}
+                desired = deck.get("desiredAudio") or {}
                 master = desired.get("master")
                 if master is not None and last_applied.get("master") != master:
                     set_master_volume(int(master))
                     last_applied["master"] = master
                 for proc, level in (desired.get("apps") or {}).items():
-                    key = "app:" + proc.lower()
+                    key = "app:" + str(proc).lower()
                     if last_applied.get(key) != level:
                         if set_app_volume(proc, int(level)):
                             last_applied[key] = level
 
-                # publicar volumen real
                 if now - last_audio_publish > 1.0:
                     actual = real_audio_state()
                     if actual != last_audio:
-                        supa.patch_state({"audio": actual})
+                        fb.patch({"audio": actual})
                         last_audio = actual
                     last_audio_publish = now
 
-                # latido de presencia
                 if now - last_presence > 8.0:
-                    supa.patch_state({
-                        "presence": {
-                            "online": True,
-                            "lastSeen": datetime.datetime.now(
-                                datetime.timezone.utc
-                            ).isoformat(),
-                        }
-                    })
+                    fb.patch({"presence": {"online": True, "lastSeen": int(now * 1000)}})
                     last_presence = now
 
-            # ejecutar órdenes pendientes
-            for cmd in supa.pending_commands():
-                payload = cmd.get("command") or {}
+            commands = deck.get("commands") or {}
+            for cmd_id, payload in commands.items():
+                if cmd_id in processed or not isinstance(payload, dict):
+                    continue
+                processed.add(cmd_id)
                 key_id = payload.get("keyId")
                 action = bindings.get(key_id)
                 if action:
@@ -424,7 +389,7 @@ def main():
                     run_action(action)
                 else:
                     print("[!] botón sin función:", key_id)
-                supa.mark_processed(cmd["id"])
+                fb.delete("/commands/" + cmd_id)
 
         except KeyboardInterrupt:
             print("\nParado.")

@@ -1,7 +1,7 @@
 {
-  "supabase_url": "https://TU-PROYECTO.supabase.co",
-  "supabase_anon_key": "TU-ANON-KEY-DE-SUPABASE",
-  "email": "tu@correo.com",
-  "password": "tu-contrasena",
+  "firebase_api_key": "AIzaSyBi7LVOHOUTk1HxNWT_2yMvDstklvhnyaw",
+  "database_url": "https://careful-plexus-402813-default-rtdb.firebaseio.com",
+  "email": "giocavallic@gmail.com",
+  "password": "TU-CONTRASENA",
   "poll_ms": 300
 }

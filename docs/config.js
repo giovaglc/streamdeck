@@ -1,9 +1,8 @@
-// Datos públicos de tu proyecto de Supabase.
-// Los puedes encontrar en: Supabase -> Project Settings -> API
-// La "anon key" es pública por diseño: es seguro subirla a GitHub Pages.
-// La "service_role" NUNCA va aquí (solo se usa en el PC, y en este proyecto ni hace falta).
-
+// Configuración pública de Firebase (segura para GitHub Pages).
 window.DECK_CONFIG = {
-  SUPABASE_URL: 'https://TU-PROYECTO.supabase.co',
-  SUPABASE_ANON_KEY: 'TU-ANON-KEY-AQUI'
+  apiKey: 'AIzaSyBi7LVOHOUTk1HxNWT_2yMvDstklvhnyaw',
+  authDomain: 'careful-plexus-402813.firebaseapp.com',
+  databaseURL: 'https://careful-plexus-402813-default-rtdb.firebaseio.com',
+  projectId: 'careful-plexus-402813',
+  appId: '1:430838994144:web:04c9b3ce1bb98797a56c85'
 };

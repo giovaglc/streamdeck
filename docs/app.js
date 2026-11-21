@@ -1,13 +1,19 @@
-/* Stream Deck - frontend para GitHub Pages (Supabase) */
+/* Stream Deck - frontend (Firebase Auth + Realtime Database) */
 
 const CFG = window.DECK_CONFIG;
-let client = null;
+firebase.initializeApp(CFG);
+const auth = firebase.auth();
+const db = firebase.database();
+
 let uid = null;
-let state = null;
+let deckRef = null;
+let state = {};
 let editing = false;
 let currentKeyId = null;
 let saveTimer = null;
 let presenceTimer = null;
+let desiredAudio = null;
+let firstSnapshot = true;
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -32,29 +38,18 @@ const DEFAULT_LAYOUT = {
   active: 'Principal'
 };
 
-/* -------------------- sesión -------------------- */
-
-function makeClient(remember) {
-  return supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: false,
-      storage: remember ? window.localStorage : window.sessionStorage
-    }
-  });
-}
+/* -------------------------- sesión -------------------------- */
 
 async function boot() {
-  const remember = localStorage.getItem('deck_remember') === '1';
-  client = makeClient(remember);
-  const { data: { session } } = await client.auth.getSession();
-  if (session) {
-    await enterDeck(session);
-  } else {
-    $('#email').value = localStorage.getItem('deck_email') || '';
-    showLogin();
-  }
+  const remember = localStorage.getItem('deck_remember') !== '0';
+  try {
+    await auth.setPersistence(
+      remember ? firebase.auth.Auth.Persistence.LOCAL
+               : firebase.auth.Auth.Persistence.SESSION
+    );
+  } catch (e) { console.warn(e); }
+  $('#email').value = localStorage.getItem('deck_email') || '';
+  auth.onAuthStateChanged((user) => user ? enterDeck(user) : showLogin());
 }
 
 function showLogin() { $('#loginView').classList.remove('hidden'); $('#deckView').classList.add('hidden'); }
@@ -70,25 +65,71 @@ $('#loginForm').addEventListener('submit', async (ev) => {
   err.textContent = '';
   btn.disabled = true;
   btn.textContent = 'Entrando…';
-
   localStorage.setItem('deck_remember', remember ? '1' : '0');
   localStorage.setItem('deck_email', email);
-  client = makeClient(remember);
-
-  const { data, error } = await client.auth.signInWithPassword({ email, password });
-  btn.disabled = false;
-  btn.textContent = 'Entrar';
-  if (error) { err.textContent = traducirError(error.message); return; }
-  uid = data.session.user.id;
-  await registerDevice();
-  await enterDeck(data.session);
+  try {
+    await auth.setPersistence(
+      remember ? firebase.auth.Auth.Persistence.LOCAL
+               : firebase.auth.Auth.Persistence.SESSION
+    );
+    await auth.signInWithEmailAndPassword(email, password);
+  } catch (e) {
+    err.textContent = traducirError(e.code);
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+  }
 });
 
-function traducirError(msg) {
-  if (/invalid login|credentials/i.test(msg)) return 'Correo o contraseña incorrectos.';
-  if (/email not confirmed/i.test(msg)) return 'Confirma tu correo antes de entrar.';
-  if (/too many requests/i.test(msg)) return 'Demasiados intentos. Espera un momento.';
-  return msg;
+function traducirError(code) {
+  if (/wrong-password|user-not-found|invalid-credential/.test(code)) return 'Correo o contraseña incorrectos.';
+  if (/invalid-email/.test(code)) return 'El correo no es válido.';
+  if (/too-many-requests/.test(code)) return 'Demasiados intentos. Espera un momento.';
+  if (/network/.test(code)) return 'Sin conexión con Firebase.';
+  return code || 'Error al entrar';
+}
+
+$('#logoutBtn').addEventListener('click', async () => {
+  if (presenceTimer) clearInterval(presenceTimer);
+  if (deckRef) deckRef.off();
+  await auth.signOut();
+  state = {};
+  showLogin();
+});
+
+/* -------------------------- datos -------------------------- */
+
+async function enterDeck(user) {
+  uid = user.uid;
+  deckRef = db.ref('decks/' + uid);
+  await ensureDefaults();
+  showDeck();
+  firstSnapshot = true;
+  deckRef.on('value', (snap) => {
+    state = snap.val() || {};
+    if (firstSnapshot) {
+      firstSnapshot = false;
+      render();
+    } else {
+      updateSliderValues();
+      actualizarPresencia();
+      marcarSinAsignar();
+    }
+  });
+  presenceTimer = setInterval(actualizarPresencia, 2000);
+  actualizarPresencia();
+  await registerDevice();
+}
+
+async function ensureDefaults() {
+  const snap = await deckRef.once('value');
+  const cur = snap.val() || {};
+  const patch = {};
+  if (!cur.layout)       patch.layout = DEFAULT_LAYOUT;
+  if (!cur.audio)        patch.audio = { master: 0, apps: {} };
+  if (!cur.desiredAudio) patch.desiredAudio = { master: 0, apps: {} };
+  if (!cur.bindings)     patch.bindings = {};
+  if (!cur.presence)     patch.presence = { online: false, lastSeen: 0 };
+  if (Object.keys(patch).length) await deckRef.update(patch);
 }
 
 async function registerDevice() {
@@ -100,73 +141,23 @@ async function registerDevice() {
   }
   const ua = navigator.userAgent;
   const label = /iPhone/i.test(ua) ? 'iPhone' : /Android/i.test(ua) ? 'Android' : 'Navegador';
-  await client.from('trusted_devices').upsert({
-    user_id: uid,
-    device_id: deviceId,
-    label,
-    last_seen: new Date().toISOString()
-  }, { onConflict: 'user_id,device_id' });
-  $('#deviceBar').textContent = '✓ Dispositivo recordado: ' + label;
-  $('#deviceBar').classList.remove('hidden');
-}
-
-async function enterDeck(session) {
-  uid = session.user.id;
-  await ensureState();
-  showDeck();
-  await render();
-  suscribirRealtime();
-  presenceTimer = setInterval(actualizarPresencia, 2000);
-  actualizarPresencia();
-}
-
-async function logout() {
-  if (presenceTimer) clearInterval(presenceTimer);
-  await client.auth.signOut();
-  state = null;
-  showLogin();
-}
-$('#logoutBtn').addEventListener('click', logout);
-
-/* -------------------- estado en Supabase -------------------- */
-
-async function ensureState() {
-  const { data, error } = await client.from('deck_state')
-    .select('*').eq('user_id', uid).maybeSingle();
-  if (error) throw error;
-  if (data) { state = data; return; }
-  const fresh = {
-    user_id: uid,
-    layout: DEFAULT_LAYOUT,
-    audio: {},
-    desired_audio: {},
-    bindings: {},
-    presence: {}
-  };
-  const { data: created, error: e2 } = await client.from('deck_state')
-    .upsert(fresh, { onConflict: 'user_id' }).select().single();
-  if (e2) throw e2;
-  state = created;
-}
-
-async function savePatch(patch) {
-  const { error } = await client.from('deck_state')
-    .upsert({ user_id: uid, ...patch }, { onConflict: 'user_id' });
-  if (error) console.warn('Error al guardar:', error.message);
+  await deckRef.child('trustedDevices').child(deviceId).set({ label, lastSeen: Date.now() });
+  const bar = $('#deviceBar');
+  bar.textContent = '✓ Dispositivo recordado: ' + label;
+  bar.classList.remove('hidden');
 }
 
 function currentProfile() {
-  return state.layout.profiles[state.layout.active] ||
-         state.layout.profiles[Object.keys(state.layout.profiles)[0]];
+  const profiles = (state.layout && state.layout.profiles) || DEFAULT_LAYOUT.profiles;
+  return profiles[state.layout.active] || profiles[Object.keys(profiles)[0]];
 }
 
-/* -------------------- render del deck -------------------- */
+/* -------------------------- render -------------------------- */
 
 function render() {
   const grid = $('#grid');
   grid.innerHTML = '';
-  const keys = currentProfile().keys;
-  keys.forEach((k) => grid.appendChild(makeKey(k)));
+  (currentProfile().keys || []).forEach((k) => grid.appendChild(makeKey(k)));
   if (editing) {
     const add = document.createElement('div');
     add.className = 'key';
@@ -217,12 +208,13 @@ function makeKey(k) {
 function updateSliderValues() {
   const audio = state.audio || {};
   document.querySelectorAll('.key.slider').forEach((el) => {
-    const key = currentProfile().keys.find((k) => k.id === el.dataset.id);
+    const key = (currentProfile().keys || []).find((k) => k.id === el.dataset.id);
     if (!key) return;
     const target = key.target || 'master';
     let val = target === 'master' ? audio.master : (audio.apps || {})[target];
-    if (val == null) val = state.desired_audio && target === 'master'
-      ? state.desired_audio.master : 0;
+    if (val == null && desiredAudio) {
+      val = target === 'master' ? desiredAudio.master : (desiredAudio.apps || {})[target];
+    }
     if (val == null) val = 0;
     const range = el.querySelector('input');
     if (range && !range.dataset.dragging) {
@@ -242,88 +234,53 @@ function renderProfiles() {
     sel.appendChild(o);
   });
 }
+
 $('#profileSelect').addEventListener('change', async (e) => {
   state.layout.active = e.target.value;
-  await savePatch({ layout: state.layout });
+  await deckRef.child('layout').set(state.layout);
   render();
 });
 
-/* -------------------- acciones -------------------- */
+/* -------------------------- acciones -------------------------- */
 
-async function sendCommand(keyId) {
-  const { error } = await client.from('deck_commands')
-    .insert({ user_id: uid, command: { keyId, t: Date.now() } });
-  if (error) console.warn('Error al enviar orden:', error.message);
-  const el = document.querySelector('.key[data-id="' + CSS.escape(keyId) + '"]');
+function sendCommand(keyId) {
+  deckRef.child('commands').push({ keyId, t: Date.now() });
+  const el = document.querySelector('.key[data-id="' + keyId + '"]');
   if (el) {
     el.style.filter = 'brightness(1.5)';
     setTimeout(() => { el.style.filter = ''; }, 130);
   }
 }
 
-let desiredAudio = null;
 function setDesired(target, value) {
-  if (!desiredAudio) {
-    desiredAudio = JSON.parse(JSON.stringify(state.desired_audio || {}));
-    if (!desiredAudio.apps) desiredAudio.apps = {};
-  }
+  if (!desiredAudio) desiredAudio = JSON.parse(JSON.stringify(state.desiredAudio || {}));
+  if (!desiredAudio.apps) desiredAudio.apps = {};
   if (target === 'master') desiredAudio.master = value;
   else desiredAudio.apps[target] = value;
-
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
-    await savePatch({ desired_audio: desiredAudio });
-  }, 90);
+  saveTimer = setTimeout(() => deckRef.child('desiredAudio').set(desiredAudio), 90);
 }
-
-/* -------------------- presencia / realtime -------------------- */
 
 function actualizarPresencia() {
   const el = $('#presence');
-  if (!state || !state.presence || !state.presence.lastSeen) {
-    el.textContent = '● PC desconectado';
-    el.className = 'presence';
-    return;
-  }
-  const age = Date.now() - new Date(state.presence.lastSeen).getTime();
+  const p = state.presence || {};
+  const age = p.lastSeen ? Date.now() - p.lastSeen : Infinity;
   const online = age < 15000;
   el.textContent = online ? '● PC en línea' : '● PC desconectado';
   el.className = 'presence' + (online ? ' online' : '');
-  if (!online) {
-    const d = $('#deviceBar');
-    if (d) d.classList.add('hidden');
-  }
-}
-
-function suscribirRealtime() {
-  client.channel('deck-' + uid)
-    .on('postgres_changes', {
-      event: 'UPDATE', schema: 'public', table: 'deck_state',
-      filter: 'user_id=eq.' + uid
-    }, (payload) => {
-      const row = payload.new;
-      state.audio = row.audio || state.audio;
-      state.desired_audio = row.desired_audio || state.desired_audio;
-      state.presence = row.presence || state.presence;
-      state.bindings = row.bindings || state.bindings;
-      updateSliderValues();
-      actualizarPresencia();
-      marcarSinAsignar();
-    })
-    .subscribe();
+  if (!online) $('#deviceBar').classList.add('hidden');
 }
 
 function marcarSinAsignar() {
   const bindings = state.bindings || {};
   document.querySelectorAll('.key').forEach((el) => {
     const id = el.dataset.id;
-    if (!id || id === '__add') return;
-    const has = Object.prototype.hasOwnProperty.call(bindings, id);
-    el.style.opacity = has ? '1' : '.55';
+    if (!id) return;
+    el.style.opacity = Object.prototype.hasOwnProperty.call(bindings, id) ? '1' : '.55';
   });
 }
 
-/* -------------------- editor -------------------- */
+/* -------------------------- editor -------------------------- */
 
 $('#editBtn').addEventListener('click', () => {
   editing = !editing;
@@ -334,7 +291,7 @@ $('#editBtn').addEventListener('click', () => {
 
 function openEditor(id) {
   currentKeyId = id;
-  const k = id ? currentProfile().keys.find((x) => x.id === id) : null;
+  const k = id ? (currentProfile().keys || []).find((x) => x.id === id) : null;
   const f = $('#editorForm');
   f.elements.label.value = k ? k.label || '' : '';
   f.elements.icon.value = k ? k.icon || '' : '';
@@ -349,11 +306,8 @@ function openEditor(id) {
 
 function toggleTarget() {
   const isSlider = $('#editorForm').elements.type.value === 'slider';
-  const label = $('#targetLabel');
-  const input = $('#editorForm').elements.target;
-  label.classList.toggle('hidden', !isSlider);
-  input.classList.toggle('hidden', !isSlider);
-  if (!isSlider) input.value = '';
+  $('#targetLabel').classList.toggle('hidden', !isSlider);
+  $('#editorForm').elements.target.classList.toggle('hidden', !isSlider);
 }
 $('#editorForm').elements.type.addEventListener('change', toggleTarget);
 toggleTarget();
@@ -367,7 +321,6 @@ $('#saveKeyBtn').addEventListener('click', async () => {
     type: f.elements.type.value
   };
   if (data.type === 'slider') data.target = f.elements.target.value.trim() || 'master';
-
   const keys = currentProfile().keys;
   if (currentKeyId) {
     const idx = keys.findIndex((x) => x.id === currentKeyId);
@@ -375,7 +328,7 @@ $('#saveKeyBtn').addEventListener('click', async () => {
   } else {
     keys.push({ id: 'k' + Date.now(), ...data });
   }
-  await savePatch({ layout: state.layout });
+  await deckRef.child('layout').set(state.layout);
   $('#editorDlg').close();
   render();
 });
@@ -384,7 +337,7 @@ $('#deleteKeyBtn').addEventListener('click', async () => {
   const keys = currentProfile().keys;
   const idx = keys.findIndex((x) => x.id === currentKeyId);
   if (idx >= 0) keys.splice(idx, 1);
-  await savePatch({ layout: state.layout });
+  await deckRef.child('layout').set(state.layout);
   $('#editorDlg').close();
   render();
 });
