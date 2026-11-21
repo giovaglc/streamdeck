@@ -366,8 +366,8 @@ function renderReceiverPanel() {
   const online = age < 15000;
   const st = $('#receiverStatus');
   st.textContent = online
-    ? '● Daemon conectado' + (p.device ? ' en ' + p.device : '')
-    : '● Daemon desconectado — arranca python deck_daemon.py';
+    ? '● PC conectado' + (p.device ? ' · ' + p.device : '')
+    : '● PC desconectado — pulsa «Conectar PC» en este portátil';
   st.classList.toggle('online', online);
 
   const b = state.bindings || {};
@@ -385,6 +385,18 @@ function renderReceiverPanel() {
 }
 
 /* -------------------------- ajustes -------------------------- */
+
+$('#webConnect').onclick = async () => {
+  const st = $('#receiverStatus');
+  st.textContent = 'Conectando con el portátil…';
+  try {
+    const r = await fetch('http://localhost:8000/api/connect', { method: 'POST' });
+    const j = await r.json();
+    st.textContent = j.ok ? '✓ PC conectado. Espera un segundo…' : ('Error: ' + (j.error || j.msg));
+  } catch (e) {
+    st.textContent = 'No se encontró el agente del PC. Abre «Conectar PC.bat» una vez.';
+  }
+};
 
 $('#settingsBtn').onclick = () => { applyRole(); $('#settingsDlg').showModal(); };
 $('#closeSettings').onclick = () => $('#settingsDlg').close();
