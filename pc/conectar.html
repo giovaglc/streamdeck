@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Conectar PC · Stream Deck</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+background:radial-gradient(circle at 20% 0%,#1b2a4a,#0b0e16 60%);color:#fff;font:15px -apple-system,system-ui,sans-serif;padding:20px}
+.card{width:min(92vw,420px);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:22px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.5);backdrop-filter:blur(12px)}
+h1{margin:0;font-size:24px}.sub{color:#93a1bb;font-size:13px;margin:6px 0 22px}
+label{display:block;font-size:12px;color:#93a1bb;margin:12px 0 5px}
+input{width:100%;padding:12px;border-radius:11px;border:1px solid #2b3650;background:#0a0e17;color:#fff;font-size:15px;outline:none}
+input:focus{border-color:#5b8def}
+button{width:100%;margin-top:18px;padding:14px;border:0;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer}
+.go{background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;box-shadow:0 10px 26px rgba(59,130,246,.35)}
+.stop{background:rgba(255,255,255,.09);color:#dbe4f5}
+.status{margin-top:16px;padding:12px;border-radius:11px;font-size:13px;text-align:center;background:#3a2226;color:#ff9d9d}
+.status.on{background:#122d22;color:#7fe0a8}
+.msg{font-size:12px;color:#ffb4b4;min-height:16px;text-align:center;margin-top:8px}
+.small{font-size:11px;color:#6f7b93;text-align:center;margin-top:14px}
+</style></head><body>
+<div class="card">
+  <h1>💻 Conectar PC</h1>
+  <p class="sub">Inicia sesión con tu cuenta y pulsa conectar. El móvil detectará el portátil solo.</p>
+  <label>Correo</label><input id="email" type="email" autocomplete="username">
+  <label>Contraseña</label><input id="pass" type="password" autocomplete="current-password">
+  <button id="login" class="go">Iniciar sesión</button>
+  <p id="msg" class="msg"></p>
+  <button id="connect" class="go" disabled>Conectar PC</button>
+  <button id="disconnect" class="stop" style="display:none">Desconectar</button>
+  <div id="status" class="status">Comprobando…</div>
+  <p class="small">Esta ventana solo corre en tu portátil. Cierra el navegador: el PC sigue conectado.</p>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+async function status(){
+  const s=await (await fetch('/api/status')).json();
+  const el=$('#status');
+  el.textContent=s.connected?'● PC conectado — el móvil ya te ve':'● PC desconectado';
+  el.classList.toggle('on',s.connected);
+  $('#connect').style.display=s.connected?'none':'block';
+  $('#disconnect').style.display=s.connected?'block':'none';
+  if(s.email)$('#email').value=s.email;
+  return s;
+}
+$('#login').onclick=async()=>{
+  const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({email:$('#email').value,password:$('#pass').value})});
+  const j=await r.json();
+  $('#msg').textContent=j.ok?'✓ Sesión iniciada':(j.error||'Error');
+  if(j.ok){$('#pass').value='';$('#connect').disabled=false;status();}
+};
+$('#connect').onclick=async()=>{
+  const j=await (await fetch('/api/connect',{method:'POST'})).json();
+  $('#msg').textContent=j.ok?'✓ '+j.msg:(j.error||'Error');
+  status();
+};
+$('#disconnect').onclick=async()=>{await fetch('/api/disconnect',{method:'POST'});status();};
+status();
+</script></body></html>

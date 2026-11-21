@@ -14,15 +14,13 @@ la Stream Deck que le manda el portátil.
 - Stream Deck del móvil: **https://giovaglc.github.io/streamdeck/**
 - Usuario: `giova.deck@gmail.com` · contraseña: la del chat
 
-## Arrancar el PC
+## Conectar el PC (sin terminal)
 
-```powershell
-cd streamdeck\pc
-pip install -r requirements.txt
-python deck_daemon.py
-```
+Doble clic en **`pc/Conectar PC.bat`** (se abre solo al iniciar Windows).
+Se abre `http://localhost:8000`: haces login con la cuenta y pulsas **Conectar PC**.
+El daemon arranca en segundo plano y el móvil ve "● PC" automáticamente.
 
-Deja esa ventana abierta. El editor queda en `http://localhost:8000`.
+Para editar: ✏️ en la web del móvil (o en el navegador del PC con la misma cuenta).
 
 ---
 
