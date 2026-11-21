@@ -1,0 +1,3 @@
+requests>=2.31
+pycaw>=20230407
+comtypes>=1.4

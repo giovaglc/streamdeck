@@ -1,0 +1,51 @@
+:root{--bg:#0f1115;--card:#1b1e26;--line:#2c313c;--txt:#fff;--muted:#8a93a5;--ok:#2ecc71;--bad:#e74c3c}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,system-ui,"Segoe UI",sans-serif;padding:12px}
+.hidden{display:none!important}
+.view{max-width:560px;margin:0 auto}
+
+/* ---------- login ---------- */
+.login-card{background:var(--card);border-radius:18px;padding:26px 22px;margin-top:8vh;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+.login-logo{font-size:42px;text-align:center}
+.login-card h1{text-align:center;margin:6px 0 4px;font-size:24px}
+.sub{text-align:center;color:var(--muted);font-size:13px;line-height:1.4;margin:0 0 22px}
+label{display:block;font-size:12px;color:var(--muted);margin:12px 0 5px}
+input,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#11141a;color:#fff;font-size:16px;outline:none}
+input:focus,select:focus{border-color:#4a8cff}
+.check{display:flex;align-items:center;gap:9px;color:var(--txt);font-size:14px;margin-top:16px;cursor:pointer}
+.check input{width:auto;margin:0}
+button{cursor:pointer;border:0;border-radius:10px;font-weight:700;font-size:15px;padding:12px}
+.primary{background:#2ecc71;color:#06210f;width:100%;margin-top:20px}
+.ghost{background:var(--line);color:#fff;padding:8px 12px;font-size:13px}
+.error{color:var(--bad);font-size:13px;min-height:18px;text-align:center;margin:10px 0 0}
+.footnote{text-align:center;color:#5d6575;font-size:11px;margin:18px 0 0}
+
+/* ---------- deck ---------- */
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}
+h1{font-size:18px;margin:0}
+.presence{font-size:12px;color:var(--muted);margin-top:3px}
+.presence.online{color:var(--ok)}
+.header-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.header-actions select{width:auto;padding:8px;font-size:13px}
+.device-bar{background:#152a20;color:#7fe0a8;border-radius:9px;padding:8px 11px;font-size:12px;margin-bottom:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+.key{position:relative;aspect-ratio:1;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-weight:600;color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.25);transition:transform .06s,box-shadow .06s;user-select:none;overflow:hidden}
+.key:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.4)}
+.key .ico{font-size:28px;line-height:1}
+.key .lbl{font-size:11px;text-align:center;line-height:1.1;padding:0 4px}
+.key .badge{display:none;position:absolute;top:4px;right:6px;font-size:12px}
+body.editing .key .badge{display:block}
+.key.slider{justify-content:space-around;padding:8px 4px}
+.key.slider input[type=range]{width:88%;-webkit-appearance:none;height:6px;border-radius:4px;background:rgba(255,255,255,.35);outline:none}
+.key.slider input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+.key .value{font-size:11px;opacity:.9}
+.hint{text-align:center;color:var(--muted);font-size:12px;margin-top:16px}
+
+/* ---------- editor ---------- */
+dialog{border:0;border-radius:16px;padding:18px;background:var(--card);color:#fff;width:min(92vw,360px)}
+dialog::backdrop{background:rgba(0,0,0,.65)}
+.dlg-title{font-weight:700;margin-bottom:6px}
+.row{display:flex;gap:8px;margin-top:18px}
+.row button{flex:1}
+.danger{background:#3a2226;color:#ff8b8b}
+#targetWrap.hidden{display:none}

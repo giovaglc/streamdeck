@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0f1115">
+<title>Stream Deck</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ================= PANTALLA DE LOGIN ================= -->
+<section id="loginView" class="view">
+  <div class="login-card">
+    <div class="login-logo">🎛️</div>
+    <h1>Stream Deck</h1>
+    <p class="sub">Entra con la misma cuenta que usa tu portátil y se emparejan solos.</p>
+
+    <form id="loginForm">
+      <label>Correo</label>
+      <input id="email" type="email" autocomplete="email" placeholder="tu@correo.com" required>
+
+      <label>Contraseña</label>
+      <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
+
+      <label class="check">
+        <input id="remember" type="checkbox" checked>
+        <span>Recordar este dispositivo</span>
+      </label>
+
+      <button id="loginBtn" class="primary" type="submit">Entrar</button>
+      <p id="loginError" class="error"></p>
+    </form>
+    <p class="footnote">Tu sesión se guarda solo en este dispositivo.</p>
+  </div>
+</section>
+
+<!-- ================= PANTALLA DEL DECK ================= -->
+<section id="deckView" class="view hidden">
+  <header>
+    <div>
+      <h1>🎛️ Stream Deck</h1>
+      <div id="presence" class="presence">…</div>
+    </div>
+    <div class="header-actions">
+      <select id="profileSelect" aria-label="Perfil"></select>
+      <button id="editBtn" class="ghost">Editar</button>
+      <button id="logoutBtn" class="ghost">Salir</button>
+    </div>
+  </header>
+
+  <div id="deviceBar" class="device-bar hidden"></div>
+
+  <div id="grid" class="grid"></div>
+
+  <p class="hint">Pulsa un botón o mueve un deslizador · el portátil lo ejecuta</p>
+</section>
+
+<!-- ================= EDITOR DE TECLAS ================= -->
+<dialog id="editorDlg">
+  <form method="dialog" id="editorForm">
+    <div class="dlg-title" id="editorTitle">Editar control</div>
+
+    <label>Etiqueta</label>
+    <input name="label" maxlength="18" required>
+
+    <label>Icono (emoji)</label>
+    <input name="icon" maxlength="8">
+
+    <label>Color</label>
+    <input name="color" type="color">
+
+    <label>Tipo</label>
+    <select name="type">
+      <option value="button">Botón</option>
+      <option value="slider">Deslizador</option>
+    </select>
+
+    <label id="targetLabel">Objetivo del volumen</label>
+    <input name="target" placeholder="master o Spotify.exe">
+
+    <div class="row">
+      <button type="button" class="danger" id="deleteKeyBtn">Borrar</button>
+      <button type="button" class="primary" id="saveKeyBtn">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

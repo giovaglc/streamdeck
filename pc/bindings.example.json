@@ -1,0 +1,14 @@
+{
+  "youtube":  { "type": "url", "value": "https://www.youtube.com" },
+  "spotify":  { "type": "url", "value": "https://open.spotify.com" },
+  "explorer": { "type": "app", "value": "explorer.exe" },
+  "playpause": { "type": "media", "value": "playpause" },
+  "next":     { "type": "media", "value": "next" },
+  "prev":     { "type": "media", "value": "prev" },
+  "mute":     { "type": "media", "value": "mute" },
+  "taskmgr":  { "type": "app", "value": "taskmgr.exe" },
+  "lock":     { "type": "cmd", "value": "rundll32.exe user32.dll,LockWorkStation" },
+
+  "master":   { "type": "volume_master", "level": 50 },
+  "sp_vol":   { "type": "volume_app", "value": "Spotify.exe", "level": 70 }
+}

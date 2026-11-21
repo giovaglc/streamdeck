@@ -1,0 +1,7 @@
+{
+  "supabase_url": "https://TU-PROYECTO.supabase.co",
+  "supabase_anon_key": "TU-ANON-KEY-DE-SUPABASE",
+  "email": "tu@correo.com",
+  "password": "tu-contrasena",
+  "poll_ms": 300
+}
