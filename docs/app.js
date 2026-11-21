@@ -123,19 +123,8 @@ function traducirError(code) {
 async function enterDeck(user) {
   uid = user.uid;
   const email = user.email || '';
-  const badge = $('#accountBadge');
-  badge.textContent = email;
-  const wrong = CFG.ACCOUNT_EMAIL && email !== CFG.ACCOUNT_EMAIL;
-  badge.classList.toggle('wrong', wrong);
-  const warn = $('#accountWarn');
-  warn.classList.toggle('hidden', !wrong);
-  if (wrong) {
-    warn.textContent = '⚠ Sesión antigua detectada. Te he sacado: entra con ' + CFG.ACCOUNT_EMAIL + '.';
-    localStorage.setItem('deck_email', CFG.ACCOUNT_EMAIL);
-    localStorage.setItem('deck_remember', '1');
-    setTimeout(() => auth.signOut(), 500);
-    return;
-  }
+  $('#accountBadge').textContent = email;
+  $('#accountWarn').classList.add('hidden');
   deckRef = db.ref('decks/' + uid);
   await ensureDefaults();
   showDeck();
@@ -419,6 +408,10 @@ $('#saveBatPath').onclick = async () => {
 $('#runBatBtn').onclick = () => {
   $('#saveBatPath').click();
   window.location.href = 'streamdeck://connect';
+};
+
+$('#runMamaBtn').onclick = () => {
+  window.location.href = 'streamdeck-mama://connect';
 };
 $('#closeSettings').onclick = () => $('#settingsDlg').close();
 

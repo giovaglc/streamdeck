@@ -43,8 +43,20 @@ def main():
     winreg.CloseKey(cmd)
     winreg.CloseKey(root)
 
-    print("Protocolo streamdeck:// registrado para:")
-    print("  " + daemon)
+    # Segundo protocolo para la cuenta de mamá
+    mama_cfg = os.path.join(BASE, "config-mama.json")
+    root2 = winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\Classes\streamdeck-mama")
+    winreg.SetValue(root2, "", winreg.REG_SZ, "URL:Stream Deck Mama")
+    winreg.SetValueEx(root2, "URL Protocol", 0, winreg.REG_SZ, "")
+    cmd2 = winreg.CreateKey(root2, r"shell\open\command")
+    winreg.SetValue(cmd2, "", winreg.REG_SZ,
+                    '"%s" -u "%s" --config "%s"' % (sys.executable, daemon, mama_cfg))
+    winreg.CloseKey(cmd2)
+    winreg.CloseKey(root2)
+
+    print("Protocolos registrados:")
+    print("  streamdeck://      -> " + daemon)
+    print("  streamdeck-mama:// -> " + daemon + " --config " + mama_cfg)
     print("Ya puedes pulsar «Conectar PC» en la web.")
 
 

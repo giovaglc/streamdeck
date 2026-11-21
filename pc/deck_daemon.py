@@ -441,6 +441,21 @@ def load_bindings():
 
 # ---------------------------------------------------------------- bucle
 def main():
+    global CONFIG_PATH, BINDINGS_PATH
+
+    # Permitir varios daemons en el mismo PC: uno por cuenta.
+    #   python deck_daemon.py --config config-mama.json
+    config_arg = None
+    if '--config' in sys.argv:
+        i = sys.argv.index('--config')
+        if i + 1 < len(sys.argv):
+            config_arg = sys.argv[i + 1]
+    if config_arg:
+        CONFIG_PATH = config_arg if os.path.isabs(config_arg) else os.path.join(BASE_DIR, config_arg)
+        name = os.path.basename(CONFIG_PATH)
+        stem = name[7:-5] if name.startswith('config-') and name.endswith('.json') else 'custom'
+        BINDINGS_PATH = os.path.join(BASE_DIR, 'bindings-%s.json' % stem)
+
     cfg = load_json(CONFIG_PATH, EXAMPLE_CONFIG)
     load_json(BINDINGS_PATH, EXAMPLE_BINDINGS)
 

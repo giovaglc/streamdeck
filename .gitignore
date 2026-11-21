@@ -1,9 +1,11 @@
 # Secretos / configuración local del PC
 pc/config.json
+pc/config-*.json
 pc/tokens.json
 
 # Bindings se editan en el PC (se versiona solo el example)
 pc/bindings.json
+pc/bindings-*.json
 pc/*.log
 daemon_run.log
 *.pid
