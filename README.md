@@ -3,7 +3,8 @@
 Ahora **todo se edita en el PC**. El móvil se pone en horizontal y solo muestra
 la Stream Deck que le manda el portátil.
 
-- **PC:** editor visual en `http://localhost:8000` + daemon que ejecuta acciones.
+- **Web:** editor visual con login (✏️ en la Stream Deck) para diseñar todo.
+- **PC:** daemon que ejecuta acciones y controla el volumen.
 - **Nube:** Firebase (Spark, gratis): Auth + Realtime Database.
 - **Móvil:** web en GitHub Pages, modo horizontal, sin botones de edición.
 

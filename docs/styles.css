@@ -84,3 +84,64 @@ dialog::backdrop{background:rgba(0,0,0,.7)}
 #passMsg{min-height:16px}
 dialog .row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
 dialog .row button{flex:1;min-width:90px}
+
+/* ---------------- editor web ---------------- */
+.editor{overflow:auto;background:linear-gradient(160deg,#111622,#0d1018 60%);padding:0}
+.ed-head{height:52px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 14px;
+  background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07);position:sticky;top:0;z-index:5;backdrop-filter:blur(10px)}
+.ed-brand{font-weight:800;font-size:15px;letter-spacing:.2px}
+.ed-status{font-size:11px;font-weight:600;color:#7fe0a8;margin-left:8px}
+.ed-status.saving{color:#ffd479}
+.ed-back{background:rgba(255,255,255,.08);color:#dbe4f5;padding:8px 12px;font-size:12px}
+.ed-body{display:grid;grid-template-columns:290px 1fr;gap:14px;padding:14px;max-width:1200px;margin:0 auto}
+.ed-side{display:flex;flex-direction:column;gap:12px}
+.ed-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px;
+  box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.ed-card h3{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#8ab4ff}
+.ed-card label{display:block;font-size:11px;color:var(--muted);margin:10px 0 5px}
+.ed-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:7px 0}
+.ed-row input[type=text],.ed-row input:not([type]){flex:1;min-width:90px;padding:9px 10px;border-radius:9px;border:1px solid #2c3446;background:#0d111a;color:#fff;font-size:13px}
+.ed-row input[type=color]{width:48px;height:36px;padding:2px;border:0;border-radius:8px;background:none}
+.ed-add{background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;padding:9px 13px;border-radius:9px;font-size:12px;font-weight:700}
+.ed-soft{background:rgba(255,255,255,.08);color:#dbe4f5;font-size:11px;padding:8px 10px}
+.danger{color:#ff9d9d}
+.ed-hint{font-size:11px;color:#7d879b;margin:6px 0;line-height:1.4}
+.ed-pages{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.ed-page{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;
+  background:#0d111a;border:1px solid #232c3d;color:#cbd5e8;font-size:13px;cursor:pointer;transition:.15s}
+.ed-page:hover{border-color:#3b82f6;transform:translateX(2px)}
+.ed-page.on{background:linear-gradient(135deg,#1e3a5f,#243b6b);border-color:#5b8def;color:#fff;font-weight:700}
+.ed-page .dot{width:8px;height:8px;border-radius:50%;background:#3b82f6}
+.ed-presets{display:flex;gap:6px;margin-top:10px}
+.ed-presets button{width:26px;height:26px;border-radius:8px;border:2px solid rgba(255,255,255,.15)}
+.ed-preview{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;background:#080b11;border-radius:10px;padding:6px;min-height:90px}
+.pv{border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;overflow:hidden}
+.ed-main{min-width:0}
+.ed-tabs{display:flex;gap:6px;margin-bottom:12px}
+.ed-tabs button{background:rgba(255,255,255,.06);color:#9aa6bd;font-size:12px;padding:9px 14px;border-radius:10px}
+.ed-tabs button.on{background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;box-shadow:0 6px 18px rgba(59,130,246,.3)}
+.ed-tab{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px;min-height:300px}
+.ed-toolbar{margin-bottom:14px}
+.ed-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
+.ed-item{background:#0d111a;border:1px solid #232c3d;border-radius:13px;padding:11px}
+.ed-item .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.ed-item .top b{font-size:13px}
+.ed-item .mini{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.ed-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ed-fields label{font-size:10px;color:#7d879b;display:block;margin-bottom:3px}
+.ed-fields input,.ed-fields select{width:100%;padding:8px;border-radius:8px;border:1px solid #2c3446;background:#080b11;color:#fff;font-size:12px}
+.ed-full{margin-top:8px}
+.ed-sizes{display:flex;gap:5px;margin-top:9px}
+.ed-sizes button{background:rgba(255,255,255,.07);color:#aab6cc;font-size:11px;padding:6px 10px;border-radius:7px}
+.ed-sizes button.on{background:#3b82f6;color:#fff}
+.ed-del{background:#4a2228;color:#ffaaaa;font-size:11px;padding:6px 9px;border-radius:7px}
+.ed-bindings{display:flex;flex-direction:column;gap:7px;margin-bottom:10px}
+.ed-bind{display:grid;grid-template-columns:130px 120px 1fr 70px auto;gap:6px;align-items:center;background:#0d111a;border-radius:10px;padding:7px}
+.ed-bind input,.ed-bind select{width:100%;padding:8px;border-radius:8px;border:1px solid #2c3446;background:#080b11;color:#fff;font-size:12px}
+
+@media (max-width:760px){
+  .ed-body{grid-template-columns:1fr;padding:8px}
+  .ed-side{flex-direction:row;overflow:auto}
+  .ed-card{min-width:230px}
+  .ed-bind{grid-template-columns:1fr 1fr}
+}

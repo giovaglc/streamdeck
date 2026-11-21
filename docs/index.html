@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Stream Deck</title>
-<link rel="stylesheet" href="styles.css?v=7">
+<link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
 
@@ -39,6 +39,7 @@
     <div class="brand">🎛️ <span id="pageName">Stream Deck</span></div>
     <div class="top-actions">
       <span id="presence">…</span>
+      <button id="editBtn" class="icon-btn" title="Editor">✏️</button>
       <button id="settingsBtn" class="icon-btn" title="Ajustes">⚙️</button>
     </div>
   </div>
@@ -51,6 +52,75 @@
     <h3>Funciones asignadas</h3>
     <div id="receiverBindings" class="receiver-bindings"></div>
   </section>
+</section>
+
+<!-- ================= EDITOR WEB ================= -->
+<section id="editorView" class="view editor hidden">
+  <div class="ed-head">
+    <button id="edBack" class="ed-back">← Ver deck</button>
+    <div class="ed-brand">✏️ Editor <span id="edStatus" class="ed-status">Guardado ✓</span></div>
+    <button id="edLogout" class="ed-back">Salir</button>
+  </div>
+
+  <div class="ed-body">
+    <aside class="ed-side">
+      <div class="ed-card">
+        <h3>Páginas</h3>
+        <div id="edPages" class="ed-pages"></div>
+        <div class="ed-row"><input id="edNewPage" placeholder="Nombre de página"><button id="edAddPage" class="ed-add">+</button></div>
+        <div class="ed-row"><button id="edRenamePage" class="ed-soft">Renombrar</button><button id="edDeletePage" class="ed-soft danger">Borrar</button></div>
+        <p class="ed-hint">La página activa es la que ve el móvil.</p>
+      </div>
+
+      <div class="ed-card">
+        <h3>Apariencia</h3>
+        <label>Color de fondo</label>
+        <div class="ed-row"><input type="color" id="edBg"><span id="edBgHex" class="ed-hint"></span></div>
+        <div id="edPresets" class="ed-presets"></div>
+      </div>
+
+      <div class="ed-card">
+        <h3>Vista previa</h3>
+        <div id="edPreview" class="ed-preview"></div>
+        <p class="ed-hint">Así se ve en el móvil en horizontal.</p>
+      </div>
+    </aside>
+
+    <main class="ed-main">
+      <div class="ed-tabs">
+        <button data-tab="controls" class="on">🎛️ Controles</button>
+        <button data-tab="bindings">⚡ Funciones</button>
+        <button data-tab="account">🔒 Cuenta</button>
+      </div>
+
+      <div id="tab-controls" class="ed-tab">
+        <div class="ed-row ed-toolbar">
+          <button id="edAddButton" class="ed-add">+ Botón</button>
+          <button id="edAddSlider" class="ed-add">+ Deslizador</button>
+          <span class="ed-hint">Los cambios se guardan solos ✨</span>
+        </div>
+        <div id="edItems" class="ed-items"></div>
+      </div>
+
+      <div id="tab-bindings" class="ed-tab hidden">
+        <p class="ed-hint">Aquí decides qué hace cada botón en el portátil. El id debe coincidir con el del control.</p>
+        <div id="edBindings" class="ed-bindings"></div>
+        <div class="ed-row"><input id="edNewBind" placeholder="id del botón"><button id="edAddBind" class="ed-add">+ Añadir</button></div>
+      </div>
+
+      <div id="tab-account" class="ed-tab hidden">
+        <div class="ed-card">
+          <h3>Cambiar contraseña</h3>
+          <label>Contraseña actual</label><input id="edCurrentPass" type="password">
+          <label>Nueva contraseña</label><input id="edNewPass" type="password">
+          <label>Repetir nueva</label><input id="edRepeatPass" type="password">
+          <p id="edPassMsg" class="ed-hint"></p>
+          <button id="edChangePass" class="ed-add">Cambiar contraseña</button>
+          <p class="ed-hint">El portátil no necesita cambiar nada: usa un token de sesión guardado.</p>
+        </div>
+      </div>
+    </main>
+  </div>
 </section>
 
 <div id="rotateHint" class="rotate-hint hidden">
@@ -81,7 +151,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="config.js?v=7"></script>
-<script src="app.js?v=7"></script>
+<script src="config.js?v=8"></script>
+<script src="app.js?v=8"></script>
+<script src="editor.js?v=8"></script>
 </body>
 </html>

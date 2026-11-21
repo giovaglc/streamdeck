@@ -253,6 +253,39 @@ class Firebase:
         except Exception:
             return False
 
+    def init(self):
+        """Usa el refresh token guardado; si no, hace login con contraseña."""
+        cfg = load_json(CONFIG_PATH, EXAMPLE_CONFIG)
+        saved = cfg.get("refresh_token")
+        if saved:
+            self.refresh_token = saved
+            try:
+                self.renew()
+                self.uid = self.uid or "unknown"
+                # renovar no devuelve uid: lo sacamos del token
+                self.uid = self._uid_from_token()
+                print("[auth] sesión renovada con token guardado")
+                return
+            except Exception:
+                pass
+        self.login()
+
+    def _uid_from_token(self):
+        import base64
+        payload = self.token.split('.')[1]
+        payload += '=' * (-len(payload) % 4)
+        data = json.loads(base64.urlsafe_b64decode(payload).decode('utf-8'))
+        return data.get('user_id') or data.get('sub')
+
+    def _save_refresh(self):
+        try:
+            cfg = load_json(CONFIG_PATH, EXAMPLE_CONFIG)
+            cfg["refresh_token"] = self.refresh_token
+            with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+                json.dump(cfg, f, indent=2, ensure_ascii=False)
+        except Exception as exc:
+            print("[auth] no pudo guardar refresh token:", exc)
+
     def login(self):
         r = self.http.post(
             "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword",
@@ -265,6 +298,7 @@ class Firebase:
         self.token = data["idToken"]
         self.refresh_token = data.get("refreshToken")
         self.uid = data["localId"]
+        self._save_refresh()
         print("[auth] sesión iniciada como", self.email)
 
     def renew(self):
@@ -280,6 +314,7 @@ class Firebase:
                 data = r.json()
                 self.token = data["access_token"]
                 self.refresh_token = data.get("refresh_token", self.refresh_token)
+                self._save_refresh()
                 return
         except Exception:
             pass
@@ -410,125 +445,38 @@ def main():
     load_json(BINDINGS_PATH, EXAMPLE_BINDINGS)
 
     fb = Firebase(cfg["firebase_api_key"], cfg["database_url"], cfg["email"], cfg["password"])
-    fb.login()
+    fb.init()
 
     poll = float(cfg.get("poll_ms", 300)) / 1000.0
     bindings = load_bindings()
-    bindings_mtime = os.path.getmtime(BINDINGS_PATH)
+    last_bindings_hash = json.dumps(bindings, sort_keys=True)
     last_applied = {}
     last_audio_publish = 0
     last_presence = 0
-    last_bindings_hash = None
     last_audio = None
     processed = set()
 
-    # ---------------- editor local (solo en este PC) ----------------
-    ctx = {"bindings": bindings, "layout": None}
-
-    class EditorHandler(BaseHTTPRequestHandler):
-        def log_message(self, fmt, *args):
-            pass
-
-        def _send(self, code, body, ctype="application/json; charset=utf-8"):
-            data = body.encode("utf-8") if isinstance(body, str) else body
-            self.send_response(code)
-            self.send_header("Content-Type", ctype)
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            self.wfile.write(data)
-
-        def _json(self, obj, code=200):
-            self._send(code, json.dumps(obj, ensure_ascii=False))
-
-        def _body(self):
-            n = int(self.headers.get("Content-Length", 0))
-            if not n:
-                return {}
-            return json.loads(self.rfile.read(n).decode("utf-8"))
-
-        def do_GET(self):
-            if self.path in ("/", "/index.html"):
-                try:
-                    with open(os.path.join(BASE_DIR, "editor.html"), "r", encoding="utf-8") as f:
-                        self._send(200, f.read(), "text/html; charset=utf-8")
-                except Exception as exc:
-                    self._send(500, str(exc), "text/plain; charset=utf-8")
-            elif self.path == "/api/state":
-                deck = fb.get_deck()
-                layout = normalize_layout(deck.get("layout") or {})
-                ctx["layout"] = layout
-                self._json({"layout": layout, "bindings": ctx["bindings"],
-                            "uid": fb.uid, "presence": deck.get("presence") or {}})
-            elif self.path == "/api/ping":
-                self._json({"ok": True})
-            else:
-                self._json({"error": "not found"}, 404)
-
-        def do_POST(self):
-            try:
-                data = self._body()
-                if self.path == "/api/layout":
-                    layout = normalize_layout(data.get("layout") or {})
-                    fb.patch({"layout": layout})
-                    ctx["layout"] = layout
-                    self._json({"ok": True, "layout": layout})
-                elif self.path == "/api/bindings":
-                    b = data.get("bindings") or {}
-                    with open(BINDINGS_PATH, "w", encoding="utf-8") as f:
-                        json.dump(b, f, indent=2, ensure_ascii=False)
-                    ctx["bindings"] = b
-                    fb.patch({"bindings": b})
-                    print("[editor] bindings guardados")
-                    self._json({"ok": True})
-                elif self.path == "/api/page":
-                    layout = normalize_layout(ctx["layout"] or {})
-                    page = data.get("page")
-                    if page in layout["profiles"]:
-                        layout["active"] = page
-                        fb.patch({"layout": layout})
-                        ctx["layout"] = layout
-                        self._json({"ok": True, "active": page})
-                    else:
-                        self._json({"ok": False, "error": "página no existe"}, 400)
-                elif self.path == "/api/password":
-                    password = data.get("password", "")
-                    if len(password) < 6:
-                        self._json({"ok": False, "error": "mínimo 6 caracteres"}, 400)
-                    else:
-                        fb.change_password(password)
-                        self._json({"ok": True})
-                else:
-                    self._json({"error": "not found"}, 404)
-            except Exception as exc:
-                self._json({"ok": False, "error": str(exc)}, 500)
-
-    editor = ThreadingHTTPServer(("127.0.0.1", 8000), EditorHandler)
-    threading.Thread(target=editor.serve_forever, daemon=True).start()
-
     print("=" * 58)
     print(" Stream Deck daemon en marcha")
-    print(" Editor del PC:  http://localhost:8000")
-    print(" El móvil solo muestra lo que publique este editor.")
+    print(" Edita la web: https://giovaglc.github.io/streamdeck/")
     print(" Ctrl+C para parar.")
     print("=" * 58)
 
     while True:
         try:
-            mtime = os.path.getmtime(BINDINGS_PATH)
-            if mtime != bindings_mtime:
-                bindings = load_bindings()
-                bindings_mtime = mtime
-                ctx["bindings"] = bindings
-                print("[bindings] recargados")
-
             deck = fb.get_deck()
             now = time.time()
 
             if deck:
-                bh = json.dumps(bindings, sort_keys=True)
-                if bh != last_bindings_hash:
-                    fb.patch({"bindings": bindings})
-                    last_bindings_hash = bh
+                remote = deck.get("bindings")
+                if isinstance(remote, dict) and remote:
+                    bh = json.dumps(remote, sort_keys=True)
+                    if bh != last_bindings_hash:
+                        bindings = remote
+                        last_bindings_hash = bh
+                        with open(BINDINGS_PATH, "w", encoding="utf-8") as f:
+                            json.dump(bindings, f, indent=2, ensure_ascii=False)
+                        print("[bindings] actualizados desde la web")
 
                 desired = deck.get("desiredAudio") or {}
                 master = desired.get("master")
