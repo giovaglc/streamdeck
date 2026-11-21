@@ -146,6 +146,14 @@ def set_master_volume(level):
         return False
 
 
+def safe_key(name):
+    """Firebase RTDB no permite . # $ [ ] / en las claves."""
+    s = str(name).strip().lower()
+    for ch in '.#$[]/':
+        s = s.replace(ch, '_')
+    return s
+
+
 def audio_sessions():
     out = {}
     if not PYCAW:
@@ -164,7 +172,7 @@ def audio_sessions():
             ctl = getattr(session, "SimpleAudioVolume", None)
             if ctl is None:
                 ctl = session._ctl.QueryInterface(ISimpleAudioVolume)
-            out[name.lower()] = (name, ctl, round(ctl.GetMasterVolume() * 100))
+            out[safe_key(name)] = (name, ctl, round(ctl.GetMasterVolume() * 100))
         except Exception:
             continue
     return out
@@ -173,9 +181,9 @@ def audio_sessions():
 def set_app_volume(process, level):
     if not PYCAW:
         return False
-    target = str(process).lower()
-    for low, (real, ctl, _cur) in audio_sessions().items():
-        if low == target or real.lower() == target or low.startswith(target):
+    target = safe_key(process)
+    for low, (_real, ctl, _cur) in audio_sessions().items():
+        if low == target or low.startswith(target):
             try:
                 ctl.SetMasterVolume(max(0, min(100, level)) / 100.0, None)
                 return True
@@ -186,8 +194,8 @@ def set_app_volume(process, level):
 
 def real_audio_state():
     apps = {}
-    for _low, (real, _ctl, vol) in audio_sessions().items():
-        apps[real] = vol
+    for low, (_real, _ctl, vol) in audio_sessions().items():
+        apps[low] = vol
     return {"master": get_master_volume(), "apps": apps}
 
 

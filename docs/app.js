@@ -17,6 +17,10 @@ let presenceTimer = null;
 
 const $ = (s) => document.querySelector(s);
 
+function safeKey(s) {
+  return String(s).trim().toLowerCase().replace(/[.#$\[\]\/]/g, '_');
+}
+
 function detectRole() {
   return /iPhone|iPad|Android|Mobile/i.test(navigator.userAgent) ? 'sender' : 'receiver';
 }
@@ -275,8 +279,9 @@ function updateSliderValues() {
   const desired = state.desiredAudio || {};
   document.querySelectorAll('.vslider input').forEach((input) => {
     const t = input.dataset.target;
-    let v = t === 'master' ? audio.master : (audio.apps || {})[t];
-    if (v == null) v = t === 'master' ? desired.master : (desired.apps || {})[t];
+    const key = safeKey(t);
+    let v = t === 'master' ? audio.master : (audio.apps || {})[key];
+    if (v == null) v = t === 'master' ? desired.master : (desired.apps || {})[key];
     if (v == null) v = 0;
     if (!input.dataset.dragging) {
       input.value = Math.round(v);
@@ -304,7 +309,7 @@ function setDesired(target, value) {
   if (!state.desiredAudio) state.desiredAudio = { master: 0, apps: {} };
   if (!state.desiredAudio.apps) state.desiredAudio.apps = {};
   if (target === 'master') state.desiredAudio.master = value;
-  else state.desiredAudio.apps[target] = value;
+  else state.desiredAudio.apps[safeKey(target)] = value;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     deckRef.child('desiredAudio').set(state.desiredAudio);
