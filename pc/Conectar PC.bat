@@ -1,4 +1,5 @@
 @echo off
 cd /d "%~dp0"
-start "" http://localhost:8000
-pythonw conectar.py
+echo Conectando el PC con la Stream Deck...
+python deck_daemon.py
+pause

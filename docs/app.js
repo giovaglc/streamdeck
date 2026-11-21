@@ -367,7 +367,7 @@ function renderReceiverPanel() {
   const st = $('#receiverStatus');
   st.textContent = online
     ? '● PC conectado' + (p.device ? ' · ' + p.device : '')
-    : '● PC desconectado — pulsa «Conectar PC» en este portátil';
+    : '● PC desconectado — ejecuta «Conectar PC.bat» en el portátil';
   st.classList.toggle('online', online);
 
   const b = state.bindings || {};
@@ -385,29 +385,6 @@ function renderReceiverPanel() {
 }
 
 /* -------------------------- ajustes -------------------------- */
-
-$('#webConnect').onclick = async () => {
-  const st = $('#receiverStatus');
-  st.textContent = 'Conectando con el portátil…';
-  try {
-    await deckRef.child('pcCommand').set({ action: 'connect', t: Date.now() });
-    let tries = 0;
-    const wait = setInterval(() => {
-      tries++;
-      const p = state.presence || {};
-      if ((p.lastSeen && Date.now() - p.lastSeen < 15000) || tries > 20) {
-        clearInterval(wait);
-        st.textContent = tries > 20
-          ? 'No responde. Abre «Conectar PC.bat» una vez en el portátil.'
-          : '✓ PC conectado.';
-      } else {
-        st.textContent = 'Esperando al portátil…';
-      }
-    }, 700);
-  } catch (e) {
-    st.textContent = 'Error: ' + (e.message || 'No se pudo enviar la orden.');
-  }
-};
 
 $('#settingsBtn').onclick = () => { applyRole(); $('#settingsDlg').showModal(); };
 $('#closeSettings').onclick = () => $('#settingsDlg').close();
