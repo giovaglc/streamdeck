@@ -4,6 +4,7 @@ pc/tokens.json
 
 # Bindings se editan en el PC (se versiona solo el example)
 pc/bindings.json
+pc/*.log
 
 # Python
 __pycache__/
