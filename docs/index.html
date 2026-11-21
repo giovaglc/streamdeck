@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
@@ -7,50 +7,50 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Stream Deck</title>
-<link rel="stylesheet" href="styles.css?v=14">
+<link rel="stylesheet" href="styles.css?v=15">
 </head>
 <body>
 
 <!-- ================= LOGIN ================= -->
 <section id="loginView" class="view">
   <div class="login-card">
-    <div class="login-logo">🎛️</div>
+    <div class="login-logo">ðŸŽ›ï¸</div>
     <h1>Stream Deck</h1>
-    <p class="sub">Entra con la misma cuenta que usa tu portátil y se emparejan solos.</p>
+    <p class="sub">Entra con la misma cuenta que usa tu portÃ¡til y se emparejan solos.</p>
     <form id="loginForm">
       <label>Correo</label>
       <input id="email" type="email" autocomplete="email" placeholder="tu@correo.com" required>
-      <label>Contraseña</label>
-      <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
-      <label id="repeatLabel" class="hidden">Repetir contraseña</label>
-      <input id="repeatPassword" class="hidden" type="password" autocomplete="new-password" placeholder="••••••••">
+      <label>ContraseÃ±a</label>
+      <input id="password" type="password" autocomplete="current-password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" required>
+      <label id="repeatLabel" class="hidden">Repetir contraseÃ±a</label>
+      <input id="repeatPassword" class="hidden" type="password" autocomplete="new-password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢">
       <label class="check"><input id="remember" type="checkbox" checked><span>Recordar este dispositivo</span></label>
       <button id="loginBtn" class="primary" type="submit">Entrar</button>
       <p id="loginError" class="error"></p>
-      <p class="switch"><button type="button" id="switchMode" class="link">¿No tienes cuenta? Crear cuenta</button></p>
+      <p class="switch"><button type="button" id="switchMode" class="link">Â¿No tienes cuenta? Crear cuenta</button></p>
     </form>
-    <p class="footnote">Tu sesión se guarda solo en este dispositivo.</p>
+    <p class="footnote">Tu sesiÃ³n se guarda solo en este dispositivo.</p>
   </div>
 </section>
 
 <!-- ================= STREAM DECK ================= -->
 <section id="deckView" class="view hidden">
   <div id="topbar">
-    <div class="brand">🎛️ <span id="pageName">Stream Deck</span></div>
+    <div class="brand">ðŸŽ›ï¸ <span id="pageName">Stream Deck</span></div>
     <div class="top-actions">
       <span id="accountBadge" class="account-badge"></span>
-      <span id="presence">…</span>
-      <button id="editBtn" class="icon-btn" title="Editor">✏️</button>
-      <button id="settingsBtn" class="icon-btn" title="Ajustes">⚙️</button>
+      <span id="presence">â€¦</span>
+      <button id="editBtn" class="icon-btn" title="Editor">âœï¸</button>
+      <button id="settingsBtn" class="icon-btn" title="Ajustes">âš™ï¸</button>
     </div>
   </div>
   <div id="accountWarn" class="account-warn hidden"></div>
   <div id="grid" class="grid"></div>
 
   <section id="receiverPanel" class="receiver hidden">
-    <div class="receiver-title">💻 Modo recepción <span>(portátil)</span></div>
-    <p>Este dispositivo recibe las órdenes del móvil. La ejecución la hace el daemon de Python.</p>
-    <div id="receiverStatus" class="receiver-status">…</div>
+    <div class="receiver-title">ðŸ’» Modo recepciÃ³n <span>(portÃ¡til)</span></div>
+    <p>Este dispositivo recibe las Ã³rdenes del mÃ³vil. La ejecuciÃ³n la hace el daemon de Python.</p>
+    <div id="receiverStatus" class="receiver-status">â€¦</div>
     <h3>Funciones asignadas</h3>
     <div id="receiverBindings" class="receiver-bindings"></div>
   </section>
@@ -59,19 +59,19 @@
 <!-- ================= EDITOR WEB ================= -->
 <section id="editorView" class="view editor hidden">
   <div class="ed-head">
-    <button id="edBack" class="ed-back">← Ver deck</button>
-    <div class="ed-brand">✏️ Editor <span id="edStatus" class="ed-status">Guardado ✓</span></div>
+    <button id="edBack" class="ed-back">â† Ver deck</button>
+    <div class="ed-brand">âœï¸ Editor <span id="edStatus" class="ed-status">Guardado âœ“</span></div>
     <button id="edLogout" class="ed-back">Salir</button>
   </div>
 
   <div class="ed-body">
     <aside class="ed-side">
       <div class="ed-card">
-        <h3>Páginas</h3>
+        <h3>PÃ¡ginas</h3>
         <div id="edPages" class="ed-pages"></div>
-        <div class="ed-row"><input id="edNewPage" placeholder="Nombre de página"><button id="edAddPage" class="ed-add">+</button></div>
+        <div class="ed-row"><input id="edNewPage" placeholder="Nombre de pÃ¡gina"><button id="edAddPage" class="ed-add">+</button></div>
         <div class="ed-row"><button id="edRenamePage" class="ed-soft">Renombrar</button><button id="edDeletePage" class="ed-soft danger">Borrar</button></div>
-        <p class="ed-hint">La página activa es la que ve el móvil.</p>
+        <p class="ed-hint">La pÃ¡gina activa es la que ve el mÃ³vil.</p>
       </div>
 
       <div class="ed-card">
@@ -84,41 +84,41 @@
       <div class="ed-card">
         <h3>Vista previa</h3>
         <div id="edPreview" class="ed-preview"></div>
-        <p class="ed-hint">Así se ve en el móvil en horizontal.</p>
+        <p class="ed-hint">AsÃ­ se ve en el mÃ³vil en horizontal.</p>
       </div>
     </aside>
 
     <main class="ed-main">
       <div class="ed-tabs">
-        <button data-tab="controls" class="on">🎛️ Controles</button>
-        <button data-tab="bindings">⚡ Funciones</button>
-        <button data-tab="account">🔒 Cuenta</button>
+        <button data-tab="controls" class="on">ðŸŽ›ï¸ Controles</button>
+        <button data-tab="bindings">âš¡ Funciones</button>
+        <button data-tab="account">ðŸ”’ Cuenta</button>
       </div>
 
       <div id="tab-controls" class="ed-tab">
         <div class="ed-row ed-toolbar">
-          <button id="edAddButton" class="ed-add">+ Botón</button>
+          <button id="edAddButton" class="ed-add">+ BotÃ³n</button>
           <button id="edAddSlider" class="ed-add">+ Deslizador</button>
-          <span class="ed-hint">Los cambios se guardan solos ✨</span>
+          <span class="ed-hint">Los cambios se guardan solos âœ¨</span>
         </div>
         <div id="edItems" class="ed-items"></div>
       </div>
 
       <div id="tab-bindings" class="ed-tab hidden">
-        <p class="ed-hint">Aquí decides qué hace cada botón en el portátil. El id debe coincidir con el del control.</p>
+        <p class="ed-hint">AquÃ­ decides quÃ© hace cada botÃ³n en el portÃ¡til. El id debe coincidir con el del control.</p>
         <div id="edBindings" class="ed-bindings"></div>
-        <div class="ed-row"><input id="edNewBind" placeholder="id del botón"><button id="edAddBind" class="ed-add">+ Añadir</button></div>
+        <div class="ed-row"><input id="edNewBind" placeholder="id del botÃ³n"><button id="edAddBind" class="ed-add">+ AÃ±adir</button></div>
       </div>
 
       <div id="tab-account" class="ed-tab hidden">
         <div class="ed-card">
-          <h3>Cambiar contraseña</h3>
-          <label>Contraseña actual</label><input id="edCurrentPass" type="password">
-          <label>Nueva contraseña</label><input id="edNewPass" type="password">
+          <h3>Cambiar contraseÃ±a</h3>
+          <label>ContraseÃ±a actual</label><input id="edCurrentPass" type="password">
+          <label>Nueva contraseÃ±a</label><input id="edNewPass" type="password">
           <label>Repetir nueva</label><input id="edRepeatPass" type="password">
           <p id="edPassMsg" class="ed-hint"></p>
-          <button id="edChangePass" class="ed-add">Cambiar contraseña</button>
-          <p class="ed-hint">El portátil no necesita cambiar nada: usa un token de sesión guardado.</p>
+          <button id="edChangePass" class="ed-add">Cambiar contraseÃ±a</button>
+          <p class="ed-hint">El portÃ¡til no necesita cambiar nada: usa un token de sesiÃ³n guardado.</p>
         </div>
       </div>
     </main>
@@ -126,33 +126,33 @@
 </section>
 
 <div id="rotateHint" class="rotate-hint hidden">
-  <div>🔄<br><b>Gira el móvil</b><br><span>La Stream Deck se usa en horizontal</span></div>
+  <div>ðŸ”„<br><b>Gira el mÃ³vil</b><br><span>La Stream Deck se usa en horizontal</span></div>
 </div>
 
 <!-- ================= AJUSTES ================= -->
 <dialog id="settingsDlg">
-  <div class="dlg-title">⚙️ Ajustes</div>
+  <div class="dlg-title">âš™ï¸ Ajustes</div>
   <label>Rol de este dispositivo</label>
-  <button id="roleBtn" class="role">📱 Envío</button>
-  <p class="hint">Envío = móvil (Stream Deck) · Recepción = portátil.</p>
+  <button id="roleBtn" class="role">ðŸ“± EnvÃ­o</button>
+  <p class="hint">EnvÃ­o = mÃ³vil (Stream Deck) Â· RecepciÃ³n = portÃ¡til.</p>
 
   <hr>
   <div class="dlg-title">Conectar PC desde la web</div>
-  <label>Ruta de «Conectar PC.bat» en el portátil</label>
-  <input id="batPath" type="text" placeholder="C:\...\streamdeck\pc\Conectar PC.bat">
+  <label>Ruta de deck_daemon.py (informativa)</label>
+  <input id="batPath" type="text" placeholder="C:\...\streamdeck\pc\deck_daemon.py">
   <button id="saveBatPath" class="ghost">Guardar ruta</button>
-  <button id="runBatBtn" class="primary">🚀 Conectar PC</button>
-  <p class="hint">La primera vez ejecuta «Registrar protocolo.bat» en el PC. Después este botón abre el .bat solo.</p>
+  <button id="runBatBtn" class="primary">ðŸš€ Conectar PC</button>
+  <p class="hint">El botÃ³n ejecuta el daemon directamente con Python. La primera vez ejecuta Â«Registrar protocolo.batÂ» en el PC.</p>
 
   <hr>
-  <div class="dlg-title">Cambiar contraseña</div>
-  <label>Contraseña actual</label><input id="currentPass" type="password" autocomplete="current-password">
-  <label>Nueva contraseña</label><input id="newPass" type="password" autocomplete="new-password">
+  <div class="dlg-title">Cambiar contraseÃ±a</div>
+  <label>ContraseÃ±a actual</label><input id="currentPass" type="password" autocomplete="current-password">
+  <label>Nueva contraseÃ±a</label><input id="newPass" type="password" autocomplete="new-password">
   <label>Repetir nueva</label><input id="repeatPass" type="password" autocomplete="new-password">
-  <p class="hint">Si cambias la contraseña aquí, actualiza también <b>pc/config.json</b> (o cambia la contraseña desde el editor del PC, que lo hace solo).</p>
+  <p class="hint">Si cambias la contraseÃ±a aquÃ­, actualiza tambiÃ©n <b>pc/config.json</b> (o cambia la contraseÃ±a desde el editor del PC, que lo hace solo).</p>
   <p id="passMsg" class="error"></p>
   <div class="row">
-    <button id="changePass" class="primary">Cambiar contraseña</button>
+    <button id="changePass" class="primary">Cambiar contraseÃ±a</button>
     <button id="logoutBtn" class="ghost">Salir</button>
     <button id="closeSettings" class="ghost">Cerrar</button>
   </div>
@@ -161,8 +161,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="config.js?v=14"></script>
-<script src="app.js?v=14"></script>
-<script src="editor.js?v=14"></script>
+<script src="config.js?v=15"></script>
+<script src="app.js?v=15"></script>
+<script src="editor.js?v=15"></script>
 </body>
 </html>
+
