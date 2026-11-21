@@ -4,5 +4,6 @@ window.DECK_CONFIG = {
   authDomain: 'careful-plexus-402813.firebaseapp.com',
   databaseURL: 'https://careful-plexus-402813-default-rtdb.firebaseio.com',
   projectId: 'careful-plexus-402813',
-  appId: '1:430838994144:web:04c9b3ce1bb98797a56c85'
+  appId: '1:430838994144:web:04c9b3ce1bb98797a56c85',
+  ACCOUNT_EMAIL: 'giova.deck@gmail.com'
 };

@@ -33,6 +33,9 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}
 .top-actions{display:flex;align-items:center;gap:8px}
 #presence{font-size:11px;color:#ff9d9d;white-space:nowrap}
 #presence.online{color:var(--ok)}
+.account-badge{font-size:10px;color:#7d879b;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.account-badge.wrong{color:#ff9d9d;font-weight:700}
+.account-warn{background:#4a2228;color:#ffb4b4;padding:9px 12px;border-radius:9px;font-size:12px;margin:8px 0 0;text-align:center}
 .icon-btn{padding:4px 8px;font-size:16px;background:rgba(255,255,255,.1)}
 
 .grid{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));

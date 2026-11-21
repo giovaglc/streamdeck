@@ -122,6 +122,14 @@ function traducirError(code) {
 
 async function enterDeck(user) {
   uid = user.uid;
+  const email = user.email || '';
+  const badge = $('#accountBadge');
+  badge.textContent = email;
+  const wrong = CFG.ACCOUNT_EMAIL && email !== CFG.ACCOUNT_EMAIL;
+  badge.classList.toggle('wrong', wrong);
+  const warn = $('#accountWarn');
+  warn.classList.toggle('hidden', !wrong);
+  if (wrong) warn.textContent = '⚠ Estás con ' + email + '. El PC usa ' + CFG.ACCOUNT_EMAIL + '. Sal y entra con esa cuenta.';
   deckRef = db.ref('decks/' + uid);
   await ensureDefaults();
   showDeck();
