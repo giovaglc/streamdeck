@@ -237,7 +237,12 @@ body::before{
   height:26px;
   border-radius:13px;
   /* El input está girado -90deg: la derecha se ve arriba y la izquierda abajo */
-  background:linear-gradient(to left,rgba(255,255,255,.78) 0%,rgba(176,198,230,.42) 42%,rgba(8,12,22,.92) 100%);
+  /* El límite se mueve con el valor: abajo oscuro, arriba claro */
+  background:linear-gradient(to right,
+    rgba(8,12,22,.92) 0%,
+    rgba(8,12,22,.92) var(--fill,50%),
+    rgba(176,198,230,.55) calc(var(--fill,50%) + 1%),
+    rgba(255,255,255,.82) 100%);
   border:1px solid rgba(255,255,255,.45);
   box-shadow:
     inset 0 2px 8px rgba(0,0,0,.55),

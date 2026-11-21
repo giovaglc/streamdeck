@@ -252,6 +252,7 @@ function makeKey(k) {
     input.dataset.target = k.target || 'master';
     input.dataset.id = k.id;
     input.addEventListener('input', () => {
+      updateFill(input);
       lbl.textContent = (k.label || '') + ' ' + input.value + '%';
       setDesired(input.dataset.target, Number(input.value));
     });
@@ -275,6 +276,10 @@ function makeKey(k) {
   return el;
 }
 
+function updateFill(input) {
+  input.style.setProperty('--fill', (input.value || 0) + '%');
+}
+
 function sizeSliders() {
   document.querySelectorAll('.vslider').forEach((wrap) => {
     const input = wrap.querySelector('input');
@@ -294,6 +299,7 @@ function updateSliderValues() {
     if (v == null) v = 0;
     if (!input.dataset.dragging) {
       input.value = Math.round(v);
+      updateFill(input);
       const lbl = input.closest('.key').querySelector('.lbl');
       if (lbl && lbl.textContent.includes('%')) {
         const name = (currentKeys().find((k) => k.id === input.dataset.id) || {}).label || '';
