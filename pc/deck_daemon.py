@@ -338,6 +338,13 @@ class Firebase:
             return {}
         return r.json() or {}
 
+    def get(self, path):
+        """Lee solo una ruta concreta (mucho menos tráfico que el deck completo)."""
+        r = self.request("GET", path)
+        if r.status_code != 200:
+            return None
+        return r.json()
+
     def patch(self, fields):
         r = self.request("PATCH", json=fields)
         if r.status_code not in (200, 204):
@@ -465,6 +472,7 @@ def main():
     poll = float(cfg.get("poll_ms", 300)) / 1000.0
     bindings = load_bindings()
     last_bindings_hash = json.dumps(bindings, sort_keys=True)
+    last_bindings_check = 0
     last_applied = {}
     last_audio_publish = 0
     last_presence = 0
@@ -479,11 +487,15 @@ def main():
 
     while True:
         try:
-            deck = fb.get_deck()
             now = time.time()
 
-            if deck:
-                remote = deck.get("bindings")
+            # Solo descargamos lo que cambia: órdenes y volumen deseado.
+            commands = fb.get("/commands") or {}
+            desired = fb.get("/desiredAudio") or {}
+
+            # Las funciones se editan poco: las revisamos cada 10 s.
+            if now - last_bindings_check > 10.0:
+                remote = fb.get("/bindings")
                 if isinstance(remote, dict) and remote:
                     bh = json.dumps(remote, sort_keys=True)
                     if bh != last_bindings_hash:
@@ -492,37 +504,35 @@ def main():
                         with open(BINDINGS_PATH, "w", encoding="utf-8") as f:
                             json.dump(bindings, f, indent=2, ensure_ascii=False)
                         print("[bindings] actualizados desde la web")
+                last_bindings_check = now
 
-                desired = deck.get("desiredAudio") or {}
-                master = desired.get("master")
-                if master is not None and last_applied.get("master") != master:
-                    ok = set_master_volume(int(master))
-                    print("[audio] aplicar master", master, "->", ok)
-                    last_applied["master"] = master
-                for proc, level in (desired.get("apps") or {}).items():
-                    key = "app:" + str(proc).lower()
-                    if last_applied.get(key) != level:
-                        if set_app_volume(proc, int(level)):
-                            last_applied[key] = level
+            master = desired.get("master")
+            if master is not None and last_applied.get("master") != master:
+                ok = set_master_volume(int(master))
+                print("[audio] aplicar master", master, "->", ok)
+                last_applied["master"] = master
+            for proc, level in (desired.get("apps") or {}).items():
+                key = "app:" + str(proc).lower()
+                if last_applied.get(key) != level:
+                    if set_app_volume(proc, int(level)):
+                        last_applied[key] = level
 
-                if now - last_audio_publish > 1.0:
-                    actual = real_audio_state()
-                    if actual != last_audio:
-                        print("[audio] publicar", actual)
-                        fb.patch({"audio": actual})
-                        last_audio = actual
-                    last_audio_publish = now
+            if now - last_audio_publish > 2.0:
+                actual = real_audio_state()
+                if actual != last_audio:
+                    print("[audio] publicar", actual)
+                    fb.patch({"audio": actual})
+                    last_audio = actual
+                last_audio_publish = now
 
-                if now - last_presence > 8.0:
-                    fb.patch({"presence": {
-                        "online": True,
-                        "role": "receiver",
-                        "device": socket.gethostname(),
-                        "lastSeen": int(now * 1000),
-                    }})
-                    last_presence = now
-
-            commands = deck.get("commands") or {}
+            if now - last_presence > 15.0:
+                fb.patch({"presence": {
+                    "online": True,
+                    "role": "receiver",
+                    "device": socket.gethostname(),
+                    "lastSeen": int(now * 1000),
+                }})
+                last_presence = now
             for cmd_id, payload in commands.items():
                 if cmd_id in processed or not isinstance(payload, dict):
                     continue

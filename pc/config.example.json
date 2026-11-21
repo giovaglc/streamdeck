@@ -3,5 +3,5 @@
   "database_url": "https://careful-plexus-402813-default-rtdb.firebaseio.com",
   "email": "giocavallic@gmail.com",
   "password": "TU-CONTRASENA",
-  "poll_ms": 300
+  "poll_ms": 1000
 }
