@@ -203,8 +203,10 @@ function render() {
 }
 
 function cellSize() {
-  const cols = 8, gap = 6, pad = 12;
-  const cell = Math.max(48, Math.floor((window.innerWidth - pad - gap * (cols - 1)) / cols));
+  const cols = 7, rows = 3, gap = 6, pad = 12, topbar = 42;
+  const availW = window.innerWidth - pad - gap * (cols - 1);
+  const availH = window.innerHeight - topbar - pad - gap * (rows - 1);
+  const cell = Math.max(40, Math.floor(Math.min(availW / cols, availH / rows)));
   document.documentElement.style.setProperty('--cell', cell + 'px');
 }
 
