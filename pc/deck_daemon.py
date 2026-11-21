@@ -9,6 +9,7 @@ No abre ningún puerto: solo conexiones salientes a Firebase.
 import ctypes
 import json
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -374,7 +375,12 @@ def main():
                     last_audio_publish = now
 
                 if now - last_presence > 8.0:
-                    fb.patch({"presence": {"online": True, "lastSeen": int(now * 1000)}})
+                    fb.patch({"presence": {
+                        "online": True,
+                        "role": "receiver",
+                        "device": socket.gethostname(),
+                        "lastSeen": int(now * 1000),
+                    }})
                     last_presence = now
 
             commands = deck.get("commands") or {}

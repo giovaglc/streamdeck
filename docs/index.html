@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#0f1115">
 <title>Stream Deck</title>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
 
@@ -23,6 +23,9 @@
       <label>Contraseña</label>
       <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
 
+      <label id="repeatLabel" class="hidden">Repetir contraseña</label>
+      <input id="repeatPassword" class="hidden" type="password" autocomplete="new-password" placeholder="••••••••">
+
       <label class="check">
         <input id="remember" type="checkbox" checked>
         <span>Recordar este dispositivo</span>
@@ -30,6 +33,7 @@
 
       <button id="loginBtn" class="primary" type="submit">Entrar</button>
       <p id="loginError" class="error"></p>
+      <p class="switch"><button type="button" id="switchMode" class="link">¿No tienes cuenta? Crear cuenta</button></p>
     </form>
     <p class="footnote">Tu sesión se guarda solo en este dispositivo.</p>
   </div>
@@ -43,6 +47,7 @@
       <div id="presence" class="presence">…</div>
     </div>
     <div class="header-actions">
+      <button id="roleBtn" class="role" title="Cambiar rol de este dispositivo">📱 Envío</button>
       <select id="profileSelect" aria-label="Perfil"></select>
       <button id="editBtn" class="ghost">Editar</button>
       <button id="logoutBtn" class="ghost">Salir</button>
@@ -53,7 +58,17 @@
 
   <div id="grid" class="grid"></div>
 
-  <p class="hint">Pulsa un botón o mueve un deslizador · el portátil lo ejecuta</p>
+  <section id="receiverPanel" class="receiver hidden">
+    <div class="receiver-title">💻 Modo recepción <span>(portátil)</span></div>
+    <p>Este dispositivo recibe las órdenes del móvil. La ejecución la hace el
+       daemon de Python; asegúrate de que esté corriendo.</p>
+    <div id="receiverStatus" class="receiver-status">…</div>
+    <h3>Funciones asignadas</h3>
+    <div id="receiverBindings" class="receiver-bindings"></div>
+    <button id="refreshReceiver" class="ghost">Actualizar</button>
+  </section>
+
+  <p id="deckHint" class="hint">Pulsa un botón o mueve un deslizador · el portátil lo ejecuta</p>
 </section>
 
 <!-- ================= EDITOR DE TECLAS ================= -->
@@ -89,7 +104,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="config.js?v=2"></script>
-<script src="app.js?v=2"></script>
+<script src="config.js?v=3"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>

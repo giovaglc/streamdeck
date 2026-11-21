@@ -14,6 +14,13 @@ let saveTimer = null;
 let presenceTimer = null;
 let desiredAudio = null;
 let firstSnapshot = true;
+let signupMode = false;
+
+function detectRole() {
+  const ua = navigator.userAgent;
+  return /iPhone|iPad|Android|Mobile/i.test(ua) ? 'sender' : 'receiver';
+}
+let role = localStorage.getItem('deck_role') || detectRole();
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -52,19 +59,47 @@ async function boot() {
   auth.onAuthStateChanged((user) => user ? enterDeck(user) : showLogin());
 }
 
-function showLogin() { $('#loginView').classList.remove('hidden'); $('#deckView').classList.add('hidden'); }
+function showLogin() {
+  $('#loginView').classList.remove('hidden');
+  $('#deckView').classList.add('hidden');
+  $('#loginBtn').disabled = false;
+  $('#loginBtn').textContent = signupMode ? 'Crear cuenta' : 'Entrar';
+}
 function showDeck()  { $('#loginView').classList.add('hidden'); $('#deckView').classList.remove('hidden'); }
+
+$('#switchMode').addEventListener('click', () => {
+  signupMode = !signupMode;
+  $('#repeatLabel').classList.toggle('hidden', !signupMode);
+  $('#repeatPassword').classList.toggle('hidden', !signupMode);
+  $('#repeatPassword').required = signupMode;
+  $('#loginBtn').textContent = signupMode ? 'Crear cuenta' : 'Entrar';
+  $('#switchMode').textContent = signupMode
+    ? '¿Ya tienes cuenta? Entrar'
+    : '¿No tienes cuenta? Crear cuenta';
+  $('#loginError').textContent = '';
+});
 
 $('#loginForm').addEventListener('submit', async (ev) => {
   ev.preventDefault();
   const email = $('#email').value.trim();
   const password = $('#password').value;
+  const repeat = $('#repeatPassword').value;
   const remember = $('#remember').checked;
   const err = $('#loginError');
   const btn = $('#loginBtn');
   err.textContent = '';
+
+  if (signupMode && password !== repeat) {
+    err.textContent = 'Las contraseñas no coinciden.';
+    return;
+  }
+  if (signupMode && password.length < 6) {
+    err.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+    return;
+  }
+
   btn.disabled = true;
-  btn.textContent = 'Entrando…';
+  btn.textContent = signupMode ? 'Creando…' : 'Entrando…';
   localStorage.setItem('deck_remember', remember ? '1' : '0');
   localStorage.setItem('deck_email', email);
   try {
@@ -72,17 +107,23 @@ $('#loginForm').addEventListener('submit', async (ev) => {
       remember ? firebase.auth.Auth.Persistence.LOCAL
                : firebase.auth.Auth.Persistence.SESSION
     );
-    await auth.signInWithEmailAndPassword(email, password);
+    if (signupMode) {
+      await auth.createUserWithEmailAndPassword(email, password);
+    } else {
+      await auth.signInWithEmailAndPassword(email, password);
+    }
   } catch (e) {
     err.textContent = traducirError(e.code);
     btn.disabled = false;
-    btn.textContent = 'Entrar';
+    btn.textContent = signupMode ? 'Crear cuenta' : 'Entrar';
   }
 });
 
 function traducirError(code) {
   if (/wrong-password|user-not-found|invalid-credential/.test(code)) return 'Correo o contraseña incorrectos.';
   if (/invalid-email/.test(code)) return 'El correo no es válido.';
+  if (/email-already-in-use/.test(code)) return 'Ese correo ya tiene cuenta. Entra con él.';
+  if (/weak-password/.test(code)) return 'La contraseña es demasiado débil (mínimo 6 caracteres).';
   if (/too-many-requests/.test(code)) return 'Demasiados intentos. Espera un momento.';
   if (/network/.test(code)) return 'Sin conexión con Firebase.';
   return code || 'Error al entrar';
@@ -103,6 +144,7 @@ async function enterDeck(user) {
   deckRef = db.ref('decks/' + uid);
   await ensureDefaults();
   showDeck();
+  applyRole();
   firstSnapshot = true;
   deckRef.on('value', (snap) => {
     state = snap.val() || {};
@@ -113,6 +155,7 @@ async function enterDeck(user) {
       updateSliderValues();
       actualizarPresencia();
       marcarSinAsignar();
+      if (role === 'receiver') renderReceiverPanel();
     }
   });
   presenceTimer = setInterval(actualizarPresencia, 2000);
@@ -141,11 +184,66 @@ async function registerDevice() {
   }
   const ua = navigator.userAgent;
   const label = /iPhone/i.test(ua) ? 'iPhone' : /Android/i.test(ua) ? 'Android' : 'Navegador';
-  await deckRef.child('trustedDevices').child(deviceId).set({ label, lastSeen: Date.now() });
+  await deckRef.child('trustedDevices').child(deviceId).set({ label, role, lastSeen: Date.now() });
   const bar = $('#deviceBar');
-  bar.textContent = '✓ Dispositivo recordado: ' + label;
+  bar.textContent = '✓ ' + (role === 'sender' ? 'Envío' : 'Recepción') + ' · ' + label;
   bar.classList.remove('hidden');
 }
+
+/* -------------------------- rol del dispositivo -------------------------- */
+
+function applyRole() {
+  const isSender = role === 'sender';
+  $('#roleBtn').textContent = isSender ? '📱 Envío' : '💻 Recepción';
+  $('#roleBtn').title = isSender
+    ? 'Este dispositivo envía órdenes (Stream Deck / móvil)'
+    : 'Este dispositivo recibe órdenes (portátil)';
+  $('#grid').classList.toggle('hidden', !isSender);
+  $('#deckHint').classList.toggle('hidden', !isSender);
+  $('#editBtn').classList.toggle('hidden', !isSender);
+  $('#profileSelect').classList.toggle('hidden', !isSender);
+  $('#receiverPanel').classList.toggle('hidden', isSender);
+  if (!isSender) renderReceiverPanel();
+}
+
+$('#roleBtn').addEventListener('click', async () => {
+  role = role === 'sender' ? 'receiver' : 'sender';
+  localStorage.setItem('deck_role', role);
+  applyRole();
+  const id = localStorage.getItem('deck_device_id');
+  if (deckRef && id) {
+    await deckRef.child('trustedDevices').child(id).child('role').set(role);
+  }
+});
+
+function renderReceiverPanel() {
+  const p = state.presence || {};
+  const age = p.lastSeen ? Date.now() - p.lastSeen : Infinity;
+  const online = age < 15000;
+  const st = $('#receiverStatus');
+  st.textContent = online
+    ? '● Daemon conectado y recibiendo órdenes' + (p.device ? ' en ' + p.device : '')
+    : '● Daemon desconectado — arranca python deck_daemon.py en el PC';
+  st.classList.toggle('online', online);
+
+  const b = state.bindings || {};
+  const host = $('#receiverBindings');
+  host.innerHTML = '';
+  const ids = Object.keys(b);
+  if (!ids.length) {
+    host.innerHTML = '<span class="chip">Sin funciones asignadas</span>';
+    return;
+  }
+  ids.forEach((id) => {
+    const a = b[id] || {};
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = '<b>' + id + '</b> · ' + (a.type || '?') + (a.value ? ' ' + a.value : '');
+    host.appendChild(chip);
+  });
+}
+
+$('#refreshReceiver').addEventListener('click', renderReceiverPanel);
 
 function currentProfile() {
   const profiles = (state.layout && state.layout.profiles) || DEFAULT_LAYOUT.profiles;
@@ -269,6 +367,7 @@ function actualizarPresencia() {
   el.textContent = online ? '● PC en línea' : '● PC desconectado';
   el.className = 'presence' + (online ? ' online' : '');
   if (!online) $('#deviceBar').classList.add('hidden');
+  if (role === 'receiver') renderReceiverPanel();
 }
 
 function marcarSinAsignar() {
