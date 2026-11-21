@@ -390,11 +390,22 @@ $('#webConnect').onclick = async () => {
   const st = $('#receiverStatus');
   st.textContent = 'Conectando con el portátil…';
   try {
-    const r = await fetch('http://localhost:8000/api/connect', { method: 'POST' });
-    const j = await r.json();
-    st.textContent = j.ok ? '✓ PC conectado. Espera un segundo…' : ('Error: ' + (j.error || j.msg));
+    await deckRef.child('pcCommand').set({ action: 'connect', t: Date.now() });
+    let tries = 0;
+    const wait = setInterval(() => {
+      tries++;
+      const p = state.presence || {};
+      if ((p.lastSeen && Date.now() - p.lastSeen < 15000) || tries > 20) {
+        clearInterval(wait);
+        st.textContent = tries > 20
+          ? 'No responde. Abre «Conectar PC.bat» una vez en el portátil.'
+          : '✓ PC conectado.';
+      } else {
+        st.textContent = 'Esperando al portátil…';
+      }
+    }, 700);
   } catch (e) {
-    st.textContent = 'No se encontró el agente del PC. Abre «Conectar PC.bat» una vez.';
+    st.textContent = 'Error: ' + (e.message || 'No se pudo enviar la orden.');
   }
 };
 

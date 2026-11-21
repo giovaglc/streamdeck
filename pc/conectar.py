@@ -8,6 +8,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -15,6 +16,7 @@ import requests
 import psutil
 
 BASE = os.path.dirname(os.path.abspath(__file__))
+DB_URL = None
 CONFIG = os.path.join(BASE, "config.json")
 PIDFILE = os.path.join(BASE, "daemon.pid")
 LOGFILE = os.path.join(BASE, "daemon_run.log")
@@ -97,6 +99,60 @@ def stop_daemon():
         return False
 
 
+# ---------- puente por Firebase (sin localhost desde la web) ----------
+_fb = {"uid": None, "token": None}
+
+
+def firebase_session():
+    cfg = json.load(open(CONFIG, encoding="utf-8"))
+    refresh = cfg.get("refresh_token")
+    if refresh:
+        r = requests.post(
+            "https://securetoken.googleapis.com/v1/token",
+            params={"key": AUTH_KEY},
+            json={"grant_type": "refresh_token", "refresh_token": refresh},
+            timeout=15,
+        )
+        if r.status_code == 200:
+            d = r.json()
+            return d["user_id"], d["access_token"]
+    d, err = sign_in(cfg["email"], cfg["password"])
+    if err:
+        return None, None
+    return d["localId"], d["idToken"]
+
+
+def deck_url():
+    return "%s/decks/%s" % (DB_URL.rstrip("/"), _fb["uid"])
+
+
+def watch_firebase():
+    import threading
+    while True:
+        try:
+            if not _fb["token"]:
+                _fb["uid"], _fb["token"] = firebase_session()
+            if _fb["token"] and DB_URL:
+                r = requests.get(deck_url() + "/pcCommand.json",
+                                 params={"auth": _fb["token"]}, timeout=8)
+                cmd = r.json() if r.status_code == 200 else None
+                if r.status_code in (401, 403):
+                    _fb["token"] = None
+                elif isinstance(cmd, dict):
+                    action = cmd.get("action")
+                    if action == "connect" and not daemon_alive():
+                        ok, msg = start_daemon()
+                        requests.patch(deck_url() + "/pcCommand.json",
+                                       params={"auth": _fb["token"]},
+                                       json={"status": "connected" if ok else msg,
+                                             "at": int(time.time())}, timeout=8)
+                    elif action == "disconnect" and daemon_alive():
+                        stop_daemon()
+        except Exception:
+            _fb["token"] = None
+        time.sleep(1)
+
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
@@ -150,6 +206,9 @@ class H(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    cfg = json.load(open(CONFIG, encoding="utf-8")) if os.path.exists(CONFIG) else {}
+    DB_URL = cfg.get("database_url", "https://careful-plexus-402813-default-rtdb.firebaseio.com")
+    threading.Thread(target=watch_firebase, daemon=True).start()
     print("Panel PC: http://localhost:8000")
     srv = ThreadingHTTPServer(("127.0.0.1", 8000), H)
     try:
