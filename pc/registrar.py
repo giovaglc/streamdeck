@@ -33,7 +33,7 @@ def main():
     resp = requests.get(url, params={"auth": token}, timeout=15)
     bat = resp.json() if resp.status_code == 200 else None
     if not bat:
-        bat = os.path.join(BASE, "Conectar PC.bat")
+        bat = os.path.join(BASE, "Conectar-PC.bat")
         requests.put(url, params={"auth": token}, json=bat, timeout=15)
 
     if not os.path.exists(bat):
