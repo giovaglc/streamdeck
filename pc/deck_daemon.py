@@ -12,8 +12,10 @@ import os
 import socket
 import subprocess
 import sys
+import threading
 import time
 import webbrowser
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import requests
 
@@ -106,13 +108,22 @@ def handle_volume_steps(value):
 
 
 # ---------------------------------------------------------------- volumen real
+def _master_endpoint():
+    """Compatible con pycaw antiguo y nuevo (AudioDevice.EndpointVolume)."""
+    device = AudioUtilities.GetSpeakers()
+    if hasattr(device, "EndpointVolume"):
+        return device, device.EndpointVolume
+    iface = device.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+    return device, iface.QueryInterface(IAudioEndpointVolume)
+
+
 def get_master_volume():
     if not PYCAW:
         return None
     try:
-        devices = AudioUtilities.GetSpeakers()
-        iface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-        vol = iface.QueryInterface(IAudioEndpointVolume)
+        device, vol = _master_endpoint()
+        if hasattr(device, "volume_percent") and device.volume_percent is not None:
+            return round(device.volume_percent)
         return round(vol.GetMasterVolumeLevelScalar() * 100)
     except Exception as exc:
         print("[audio] master:", exc)
@@ -123,10 +134,12 @@ def set_master_volume(level):
     if not PYCAW:
         return False
     try:
-        devices = AudioUtilities.GetSpeakers()
-        iface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-        vol = iface.QueryInterface(IAudioEndpointVolume)
-        vol.SetMasterVolumeLevelScalar(max(0, min(100, level)) / 100.0, None)
+        level = max(0, min(100, int(level)))
+        device, vol = _master_endpoint()
+        if hasattr(device, "volume_percent"):
+            device.volume_percent = level
+        else:
+            vol.SetMasterVolumeLevelScalar(level / 100.0, None)
         return True
     except Exception as exc:
         print("[audio] set master:", exc)
@@ -148,7 +161,9 @@ def audio_sessions():
             if not proc:
                 continue
             name = proc.name()
-            ctl = session._ctl.QueryInterface(ISimpleAudioVolume)
+            ctl = getattr(session, "SimpleAudioVolume", None)
+            if ctl is None:
+                ctl = session._ctl.QueryInterface(ISimpleAudioVolume)
             out[name.lower()] = (name, ctl, round(ctl.GetMasterVolume() * 100))
         except Exception:
             continue
@@ -290,6 +305,67 @@ class Firebase:
         if r.status_code not in (200, 204):
             print("[firebase] delete:", r.status_code, r.text[:200])
 
+    def change_password(self, new_password):
+        """Cambia la contraseña del usuario (login fresco para evitar token viejo)."""
+        self.login()
+        r = self.http.post(
+            "https://identitytoolkit.googleapis.com/v1/accounts:update",
+            params={"key": self.api_key},
+            json={"idToken": self.token, "password": new_password,
+                  "returnSecureToken": True},
+            timeout=20,
+        )
+        if r.status_code != 200:
+            raise RuntimeError(r.text[:300])
+        self.password = new_password
+        data = r.json()
+        self.token = data.get("idToken", self.token)
+        self.refresh_token = data.get("refreshToken", self.refresh_token)
+        cfg = load_json(CONFIG_PATH, EXAMPLE_CONFIG)
+        cfg["password"] = new_password
+        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=2, ensure_ascii=False)
+        return True
+
+
+def normalize_layout(layout):
+    """Asegura que el layout tenga los campos nuevos (background, sizes, etc.)."""
+    layout = layout if isinstance(layout, dict) else {}
+    layout.setdefault("background", "#0f1115")
+    profiles = layout.get("profiles")
+    if not isinstance(profiles, dict) or not profiles:
+        profiles = {"Stream": {"keys": []}}
+    for page in profiles.values():
+        if not isinstance(page, dict):
+            continue
+        keys = page.get("keys")
+        if not isinstance(keys, list):
+            page["keys"] = []
+            keys = page["keys"]
+        for item in keys:
+            if not isinstance(item, dict):
+                continue
+            item.setdefault("type", "button")
+            span = item.get("span", 2 if item["type"] == "slider" else 1)
+            try:
+                span = int(span)
+            except Exception:
+                span = 1
+            if span not in (1, 2, 4):
+                span = 1
+            if item["type"] == "slider" and span < 2:
+                span = 2
+            item["span"] = span
+            item.setdefault("label", "")
+            item.setdefault("icon", "")
+            item.setdefault("color", "#34495e")
+            item.setdefault("image", "")
+            item.setdefault("target", "master")
+    layout["profiles"] = profiles
+    if not profiles.get(layout.get("active")):
+        layout["active"] = next(iter(profiles))
+    return layout
+
 
 # ---------------------------------------------------------------- config
 def load_json(path, example):
@@ -333,9 +409,93 @@ def main():
     last_audio = None
     processed = set()
 
+    # ---------------- editor local (solo en este PC) ----------------
+    ctx = {"bindings": bindings, "layout": None}
+
+    class EditorHandler(BaseHTTPRequestHandler):
+        def log_message(self, fmt, *args):
+            pass
+
+        def _send(self, code, body, ctype="application/json; charset=utf-8"):
+            data = body.encode("utf-8") if isinstance(body, str) else body
+            self.send_response(code)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def _json(self, obj, code=200):
+            self._send(code, json.dumps(obj, ensure_ascii=False))
+
+        def _body(self):
+            n = int(self.headers.get("Content-Length", 0))
+            if not n:
+                return {}
+            return json.loads(self.rfile.read(n).decode("utf-8"))
+
+        def do_GET(self):
+            if self.path in ("/", "/index.html"):
+                try:
+                    with open(os.path.join(BASE_DIR, "editor.html"), "r", encoding="utf-8") as f:
+                        self._send(200, f.read(), "text/html; charset=utf-8")
+                except Exception as exc:
+                    self._send(500, str(exc), "text/plain; charset=utf-8")
+            elif self.path == "/api/state":
+                deck = fb.get_deck()
+                layout = normalize_layout(deck.get("layout") or {})
+                ctx["layout"] = layout
+                self._json({"layout": layout, "bindings": ctx["bindings"],
+                            "uid": fb.uid, "presence": deck.get("presence") or {}})
+            elif self.path == "/api/ping":
+                self._json({"ok": True})
+            else:
+                self._json({"error": "not found"}, 404)
+
+        def do_POST(self):
+            try:
+                data = self._body()
+                if self.path == "/api/layout":
+                    layout = normalize_layout(data.get("layout") or {})
+                    fb.patch({"layout": layout})
+                    ctx["layout"] = layout
+                    self._json({"ok": True, "layout": layout})
+                elif self.path == "/api/bindings":
+                    b = data.get("bindings") or {}
+                    with open(BINDINGS_PATH, "w", encoding="utf-8") as f:
+                        json.dump(b, f, indent=2, ensure_ascii=False)
+                    ctx["bindings"] = b
+                    fb.patch({"bindings": b})
+                    print("[editor] bindings guardados")
+                    self._json({"ok": True})
+                elif self.path == "/api/page":
+                    layout = normalize_layout(ctx["layout"] or {})
+                    page = data.get("page")
+                    if page in layout["profiles"]:
+                        layout["active"] = page
+                        fb.patch({"layout": layout})
+                        ctx["layout"] = layout
+                        self._json({"ok": True, "active": page})
+                    else:
+                        self._json({"ok": False, "error": "página no existe"}, 400)
+                elif self.path == "/api/password":
+                    password = data.get("password", "")
+                    if len(password) < 6:
+                        self._json({"ok": False, "error": "mínimo 6 caracteres"}, 400)
+                    else:
+                        fb.change_password(password)
+                        self._json({"ok": True})
+                else:
+                    self._json({"error": "not found"}, 404)
+            except Exception as exc:
+                self._json({"ok": False, "error": str(exc)}, 500)
+
+    editor = ThreadingHTTPServer(("127.0.0.1", 8000), EditorHandler)
+    threading.Thread(target=editor.serve_forever, daemon=True).start()
+
     print("=" * 58)
     print(" Stream Deck daemon en marcha")
-    print(" Edita bindings.json en esta carpeta para dar funciones.")
+    print(" Editor del PC:  http://localhost:8000")
+    print(" El móvil solo muestra lo que publique este editor.")
     print(" Ctrl+C para parar.")
     print("=" * 58)
 
@@ -345,6 +505,7 @@ def main():
             if mtime != bindings_mtime:
                 bindings = load_bindings()
                 bindings_mtime = mtime
+                ctx["bindings"] = bindings
                 print("[bindings] recargados")
 
             deck = fb.get_deck()
@@ -401,7 +562,8 @@ def main():
             print("\nParado.")
             break
         except Exception as exc:
-            print("[error]", repr(exc))
+            # evita volcar tokens en el log si Firebase no responde
+            print("[error]", type(exc).__name__, str(exc)[:120])
             time.sleep(2)
 
         time.sleep(poll)

@@ -2,35 +2,29 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Stream Deck</title>
-<link rel="stylesheet" href="styles.css?v=3">
+<link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
 
-<!-- ================= PANTALLA DE LOGIN ================= -->
+<!-- ================= LOGIN ================= -->
 <section id="loginView" class="view">
   <div class="login-card">
     <div class="login-logo">🎛️</div>
     <h1>Stream Deck</h1>
     <p class="sub">Entra con la misma cuenta que usa tu portátil y se emparejan solos.</p>
-
     <form id="loginForm">
       <label>Correo</label>
       <input id="email" type="email" autocomplete="email" placeholder="tu@correo.com" required>
-
       <label>Contraseña</label>
       <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
-
       <label id="repeatLabel" class="hidden">Repetir contraseña</label>
       <input id="repeatPassword" class="hidden" type="password" autocomplete="new-password" placeholder="••••••••">
-
-      <label class="check">
-        <input id="remember" type="checkbox" checked>
-        <span>Recordar este dispositivo</span>
-      </label>
-
+      <label class="check"><input id="remember" type="checkbox" checked><span>Recordar este dispositivo</span></label>
       <button id="loginBtn" class="primary" type="submit">Entrar</button>
       <p id="loginError" class="error"></p>
       <p class="switch"><button type="button" id="switchMode" class="link">¿No tienes cuenta? Crear cuenta</button></p>
@@ -39,72 +33,55 @@
   </div>
 </section>
 
-<!-- ================= PANTALLA DEL DECK ================= -->
+<!-- ================= STREAM DECK ================= -->
 <section id="deckView" class="view hidden">
-  <header>
-    <div>
-      <h1>🎛️ Stream Deck</h1>
-      <div id="presence" class="presence">…</div>
+  <div id="topbar">
+    <div class="brand">🎛️ <span id="pageName">Stream Deck</span></div>
+    <div class="top-actions">
+      <span id="presence">…</span>
+      <button id="settingsBtn" class="icon-btn" title="Ajustes">⚙️</button>
     </div>
-    <div class="header-actions">
-      <button id="roleBtn" class="role" title="Cambiar rol de este dispositivo">📱 Envío</button>
-      <select id="profileSelect" aria-label="Perfil"></select>
-      <button id="editBtn" class="ghost">Editar</button>
-      <button id="logoutBtn" class="ghost">Salir</button>
-    </div>
-  </header>
-
-  <div id="deviceBar" class="device-bar hidden"></div>
-
+  </div>
   <div id="grid" class="grid"></div>
 
   <section id="receiverPanel" class="receiver hidden">
     <div class="receiver-title">💻 Modo recepción <span>(portátil)</span></div>
-    <p>Este dispositivo recibe las órdenes del móvil. La ejecución la hace el
-       daemon de Python; asegúrate de que esté corriendo.</p>
+    <p>Este dispositivo recibe las órdenes del móvil. La ejecución la hace el daemon de Python.</p>
     <div id="receiverStatus" class="receiver-status">…</div>
     <h3>Funciones asignadas</h3>
     <div id="receiverBindings" class="receiver-bindings"></div>
-    <button id="refreshReceiver" class="ghost">Actualizar</button>
   </section>
-
-  <p id="deckHint" class="hint">Pulsa un botón o mueve un deslizador · el portátil lo ejecuta</p>
 </section>
 
-<!-- ================= EDITOR DE TECLAS ================= -->
-<dialog id="editorDlg">
-  <form method="dialog" id="editorForm">
-    <div class="dlg-title" id="editorTitle">Editar control</div>
+<div id="rotateHint" class="rotate-hint hidden">
+  <div>🔄<br><b>Gira el móvil</b><br><span>La Stream Deck se usa en horizontal</span></div>
+</div>
 
-    <label>Etiqueta</label>
-    <input name="label" maxlength="18" required>
+<!-- ================= AJUSTES ================= -->
+<dialog id="settingsDlg">
+  <div class="dlg-title">⚙️ Ajustes</div>
+  <label>Rol de este dispositivo</label>
+  <button id="roleBtn" class="role">📱 Envío</button>
+  <p class="hint">Envío = móvil (Stream Deck) · Recepción = portátil.</p>
 
-    <label>Icono (emoji)</label>
-    <input name="icon" maxlength="8">
-
-    <label>Color</label>
-    <input name="color" type="color">
-
-    <label>Tipo</label>
-    <select name="type">
-      <option value="button">Botón</option>
-      <option value="slider">Deslizador</option>
-    </select>
-
-    <label id="targetLabel">Objetivo del volumen</label>
-    <input name="target" placeholder="master o Spotify.exe">
-
-    <div class="row">
-      <button type="button" class="danger" id="deleteKeyBtn">Borrar</button>
-      <button type="button" class="primary" id="saveKeyBtn">Guardar</button>
-    </div>
-  </form>
+  <hr>
+  <div class="dlg-title">Cambiar contraseña</div>
+  <label>Contraseña actual</label><input id="currentPass" type="password" autocomplete="current-password">
+  <label>Nueva contraseña</label><input id="newPass" type="password" autocomplete="new-password">
+  <label>Repetir nueva</label><input id="repeatPass" type="password" autocomplete="new-password">
+  <p class="hint">Si cambias la contraseña aquí, actualiza también <b>pc/config.json</b> (o cambia la contraseña desde el editor del PC, que lo hace solo).</p>
+  <p id="passMsg" class="error"></p>
+  <div class="row">
+    <button id="changePass" class="primary">Cambiar contraseña</button>
+    <button id="logoutBtn" class="ghost">Salir</button>
+    <button id="closeSettings" class="ghost">Cerrar</button>
+  </div>
 </dialog>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="config.js?v=3"></script>
-<script src="app.js?v=3"></script>
+<script src="config.js?v=4"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

@@ -1,134 +1,90 @@
 # 🎛️ Stream Deck: iPhone → portátil Windows (gratis)
 
-Un Stream Deck en la nube: abres **https://giovaglc.github.io/streamdeck/**, haces
-login con correo y contraseña y el portátil **se empareja solo** porque usa la
-misma cuenta. No hay IP, códigos ni túneles.
+Ahora **todo se edita en el PC**. El móvil se pone en horizontal y solo muestra
+la Stream Deck que le manda el portátil.
 
-- **Móvil:** diseñas botones y deslizadores (GitHub Pages, estático).
-- **Nube:** Firebase (plan Spark gratuito): Auth + Realtime Database.
-- **PC:** un daemon de Python ejecuta acciones y controla el volumen real.
+- **PC:** editor visual en `http://localhost:8000` + daemon que ejecuta acciones.
+- **Nube:** Firebase (Spark, gratis): Auth + Realtime Database.
+- **Móvil:** web en GitHub Pages, modo horizontal, sin botones de edición.
 
-Coste: **0 €**.
+## Abrir
 
-## Proyecto Firebase ya creado
+- Editor del PC: **http://localhost:8000** (solo en este equipo)
+- Stream Deck del móvil: **https://giovaglc.github.io/streamdeck/**
+- Usuario: `giocavallic@gmail.com` · contraseña: la del chat
 
-- Proyecto: **My First Project** → ID `careful-plexus-402813` (plan Spark)
-- Usuario: `giocavallic@gmail.com`
-- Contraseña: la que te pasé en el chat (cámbiala en Firebase Console → Authentication → Users si quieres)
-- Realtime Database: `https://careful-plexus-402813-default-rtdb.firebaseio.com`
-- Reglas publicadas (en `firebase/rules.json`): cada usuario solo ve su propio `decks/<uid>`
-
-La configuración web (clave pública) está en `docs/config.js`.
-
-## Estructura
-
-```
-docs/                    → GitHub Pages
-  index.html, styles.css, app.js, config.js
-pc/                      → daemon de Windows
-  deck_daemon.py
-  config.example.json    → plantilla (NO contiene la contraseña)
-  bindings.example.json  → plantilla de funciones
-  requirements.txt
-firebase/rules.json      → copia de las reglas de seguridad
-```
-
----
-
-## Puesta en marcha
-
-### 1. Portátil Windows
+## Arrancar el PC
 
 ```powershell
 cd streamdeck\pc
 pip install -r requirements.txt
-```
-
-Ya existe `pc/config.json` con los datos reales (está en `.gitignore`, **no se sube**).
-Y `pc/bindings.json` con las funciones de ejemplo. Arranca:
-
-```powershell
 python deck_daemon.py
 ```
 
-Deja la ventana abierta. No abre ningún puerto: solo sale a Firebase.
-
-### 2. iPhone
-
-Abre **https://giovaglc.github.io/streamdeck/**, pon:
-
-- Correo: `giocavallic@gmail.com`
-- Contraseña: `Deck-Movil-2026!`
-
-Marca **Recordar este dispositivo** para no volver a escribirlos (sesión local persistente;
-si lo desmarcas, la sesión vive solo en la pestaña).
-
-El emparejamiento es automático: ambos comparten el mismo UID de Firebase.
+Deja esa ventana abierta. El editor queda en `http://localhost:8000`.
 
 ---
 
-## Uso
+## Editor del PC (http://localhost:8000)
 
-### Diseñar en el móvil
-**Editar** → toca un control para cambiar etiqueta, emoji, color y tipo, o añade/borra.
-Hay **perfiles** ("Juego", "Trabajo"…) con layouts distintos.
+### Páginas / menús
+Crea páginas ("Stream", "Trabajar", "Juegos"...). Al **guardar** una página se
+activa automáticamente y el móvil cambia a ella. El móvil **no tiene selector**:
+lo elige el PC.
 
-- **Botón:** envía una orden con su `id`.
-- **Deslizador:** objetivo `master` (volumen general) o un proceso (`Spotify.exe`, `chrome.exe`).
+### Rejilla del móvil
+- Pantalla en **horizontal**, 8 columnas de cuadrados.
+- Cada control ocupa **1, 2 o 4 cuadrados**:
+  - Botón: `1` = 1×1, `2` = 2×1 (ancho), `4` = 2×2.
+  - Deslizador: mínimo `2` = 1×2 (barra vertical), `4` = 2×2.
+- Puedes poner **color**, **emoji**, **etiqueta** e **imagen** (URL o subir archivo
+  ≤ ~200 KB) en cada control.
+- **Color de fondo** general de la Stream Deck.
 
-### Darle función en el PC
-Edita `pc/bindings.json` (por ejemplo el botón `youtube`):
+### Funciones
+En "Funciones (bindings)" se define qué hace cada `id` en el PC:
+`url`, `app`, `cmd`, `volume`, `media`, `key`, `volume_master`, `volume_app`.
+Se guarda en `pc/bindings.json` y se publica en Firebase.
 
-```json
-{
-  "youtube":   { "type": "url", "value": "https://www.youtube.com" },
-  "playpause": { "type": "media", "value": "playpause" },
-  "atajo":     { "type": "key", "value": "ctrl+shift+p" },
-  "master":    { "type": "volume_master" }
-}
-```
+### Ajustes
+Cambio de contraseña desde el PC: actualiza Firebase y `pc/config.json` a la vez.
+También puedes cambiarla desde ⚙️ en el móvil, pero entonces debes actualizar
+`pc/config.json` a mano.
 
-El daemon **recarga el archivo automáticamente** sin reiniciar. Los botones sin
-función se ven atenuados en el móvil.
-
-Tipos: `url`, `app`, `cmd`, `volume` (`up2`, `down3`, `mute`), `media`
-(`playpause`, `next`, `prev`, `stop`), `key` (`ctrl+shift+p`), `volume_master`,
-`volume_app` (con `"value": "Spotify.exe"`).
-
-### Volumen en tiempo real
-El móvil escribe en `desiredAudio`; el daemon lo aplica con **pycaw** (general y
-por app) y publica el volumen real en `audio`. Realtime Database lo devuelve al
-móvil al instante: el slider se mueve incluso si cambias el volumen desde el teclado.
+**Importante:** pulsa **💾 Guardar y mostrar en el móvil** después de cada cambio
+de layout, y **💾 Guardar funciones** después de cambiar bindings.
 
 ---
+
+## Móvil
+
+- Se abre en **horizontal**; en vertical aparece un aviso para girar.
+- Muestra solo la rejilla, el nombre de la página actual y un punto de estado del PC.
+- ⚙️ Ajustes: cambiar rol (Envío/Recepción), cambiar contraseña y salir.
+- No hay edición en el móvil: todo viene del PC por Realtime Database.
 
 ## Datos en Firebase
 
 ```
 decks/<uid>/
-  layout         ← móvil
-  bindings       ← PC
+  layout         ← PC (páginas, background, controles, tamaños, imágenes)
+  bindings       ← PC (acciones)
   audio          ← PC (volumen real)
   desiredAudio   ← móvil (volumen deseado)
-  presence       ← PC (lastSeen)
-  commands/      ← móvil (órdenes, el PC las borra al ejecutar)
-  trustedDevices/← móvil (dispositivos recordados)
+  presence       ← PC (rol, equipo, lastSeen)
+  commands/      ← móvil (órdenes; el PC las ejecuta y borra)
+  trustedDevices/← móvil
 ```
 
-## Seguridad y límites
+## Coste y límites
 
-- Solo tu usuario puede leer/escribir su deck (reglas RLS de Realtime Database).
-- La clave web de Firebase es pública; la contraseña vive solo en `pc/config.json`.
-- Spark es gratuito: más que suficiente para uso personal.
-- El PC debe estar encendido con el daemon corriendo.
-- Latencia típica 100–300 ms.
+Todo gratis: GitHub Pages (repo público), Firebase Spark, Python de código abierto.
+Sin túnel, sin dominio y sin tarjeta. El PC debe estar encendido con el daemon corriendo.
 
-## Solución de problemas
+## Problemas
 
-- **"PC desconectado":** el daemon no corre o falló el login. Mira su terminal.
-- **No entra en la web:** revisa `docs/config.js` y que el usuario exista en
-  Firebase Console → Authentication → Users.
-- **Sliders sin efecto:** `pip install pycaw comtypes` y reinicia el daemon.
-- **Volumen por app no aparece:** el nombre del slider debe coincidir con el
-  proceso real (`Spotify.exe`). Abre la app y reproduce algo.
-- **Botones atenuados:** ese `id` no tiene entrada en `bindings.json`.
+- **El móvil no cambia:** pulsa Guardar en el editor y comprueba que el PC dice "en línea".
+- **No abre el editor:** el daemon no está corriendo o el puerto 8000 está ocupado.
+- **Contraseña incorrecta en el PC:** cambia la contraseña desde el editor del PC
+  (o actualiza `pc/config.json`).
+- **Slider no mueve el volumen:** `pip install pycaw comtypes` y reinicia el daemon.

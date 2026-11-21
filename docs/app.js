@@ -1,4 +1,4 @@
-/* Stream Deck - frontend (Firebase Auth + Realtime Database) */
+/* Stream Deck - móvil: solo muestra lo que publica el PC (Firebase RTDB) */
 
 const CFG = window.DECK_CONFIG;
 firebase.initializeApp(CFG);
@@ -8,41 +8,36 @@ const db = firebase.database();
 let uid = null;
 let deckRef = null;
 let state = {};
-let editing = false;
-let currentKeyId = null;
+let role = localStorage.getItem('deck_role') || detectRole();
+let signupMode = false;
+let firstSnapshot = true;
+let layoutSig = '';
 let saveTimer = null;
 let presenceTimer = null;
-let desiredAudio = null;
-let firstSnapshot = true;
-let signupMode = false;
+
+const $ = (s) => document.querySelector(s);
 
 function detectRole() {
-  const ua = navigator.userAgent;
-  return /iPhone|iPad|Android|Mobile/i.test(ua) ? 'sender' : 'receiver';
+  return /iPhone|iPad|Android|Mobile/i.test(navigator.userAgent) ? 'sender' : 'receiver';
 }
-let role = localStorage.getItem('deck_role') || detectRole();
-
-const $ = (sel) => document.querySelector(sel);
 
 const DEFAULT_LAYOUT = {
+  background: '#0f1115',
+  active: 'Stream',
   profiles: {
-    Principal: {
+    Stream: {
       keys: [
-        { id: 'youtube',   type: 'button', label: 'YouTube',   icon: '▶️', color: '#ff0033' },
-        { id: 'spotify',   type: 'button', label: 'Spotify',   icon: '🎵', color: '#1db954' },
-        { id: 'explorer',  type: 'button', label: 'Archivos',  icon: '📁', color: '#f39c12' },
-        { id: 'master',    type: 'slider', label: 'Volumen',   icon: '🔊', color: '#2980b9', target: 'master' },
-        { id: 'sp_vol',    type: 'slider', label: 'Spotify',   icon: '🎵', color: '#1db954', target: 'Spotify.exe' },
-        { id: 'playpause', type: 'button', label: 'Play/Pausa',icon: '⏯️', color: '#8e44ad' },
-        { id: 'next',      type: 'button', label: 'Siguiente', icon: '⏭️', color: '#8e44ad' },
-        { id: 'prev',      type: 'button', label: 'Anterior',  icon: '⏮️', color: '#8e44ad' },
-        { id: 'mute',      type: 'button', label: 'Silenciar', icon: '🔇', color: '#7f8c8d' },
-        { id: 'taskmgr',   type: 'button', label: 'Tareas',    icon: '📊', color: '#16a085' },
-        { id: 'lock',      type: 'button', label: 'Bloquear',  icon: '🔒', color: '#c0392b' }
+        { id: 'youtube', type: 'button', label: 'YouTube', icon: '▶️', color: '#ff0033', image: '', span: 1 },
+        { id: 'spotify', type: 'button', label: 'Spotify', icon: '🎵', color: '#1db954', image: '', span: 1 },
+        { id: 'playpause', type: 'button', label: 'Play/Pausa', icon: '⏯️', color: '#8e44ad', image: '', span: 1 },
+        { id: 'master', type: 'slider', label: 'Volumen', icon: '🔊', color: '#2980b9', image: '', target: 'master', span: 2 },
+        { id: 'sp_vol', type: 'slider', label: 'Spotify', icon: '🎵', color: '#1db954', image: '', target: 'Spotify.exe', span: 2 },
+        { id: 'explorer', type: 'button', label: 'Archivos', icon: '📁', color: '#f39c12', image: '', span: 1 },
+        { id: 'mute', type: 'button', label: 'Silenciar', icon: '🔇', color: '#7f8c8d', image: '', span: 1 },
+        { id: 'lock', type: 'button', label: 'Bloquear', icon: '🔒', color: '#c0392b', image: '', span: 1 }
       ]
     }
-  },
-  active: 'Principal'
+  }
 };
 
 /* -------------------------- sesión -------------------------- */
@@ -62,10 +57,10 @@ async function boot() {
 function showLogin() {
   $('#loginView').classList.remove('hidden');
   $('#deckView').classList.add('hidden');
+  $('#rotateHint').classList.add('hidden');
   $('#loginBtn').disabled = false;
   $('#loginBtn').textContent = signupMode ? 'Crear cuenta' : 'Entrar';
 }
-function showDeck()  { $('#loginView').classList.add('hidden'); $('#deckView').classList.remove('hidden'); }
 
 $('#switchMode').addEventListener('click', () => {
   signupMode = !signupMode;
@@ -74,8 +69,7 @@ $('#switchMode').addEventListener('click', () => {
   $('#repeatPassword').required = signupMode;
   $('#loginBtn').textContent = signupMode ? 'Crear cuenta' : 'Entrar';
   $('#switchMode').textContent = signupMode
-    ? '¿Ya tienes cuenta? Entrar'
-    : '¿No tienes cuenta? Crear cuenta';
+    ? '¿Ya tienes cuenta? Entrar' : '¿No tienes cuenta? Crear cuenta';
   $('#loginError').textContent = '';
 });
 
@@ -89,14 +83,8 @@ $('#loginForm').addEventListener('submit', async (ev) => {
   const btn = $('#loginBtn');
   err.textContent = '';
 
-  if (signupMode && password !== repeat) {
-    err.textContent = 'Las contraseñas no coinciden.';
-    return;
-  }
-  if (signupMode && password.length < 6) {
-    err.textContent = 'La contraseña debe tener al menos 6 caracteres.';
-    return;
-  }
+  if (signupMode && password !== repeat) { err.textContent = 'Las contraseñas no coinciden.'; return; }
+  if (signupMode && password.length < 6) { err.textContent = 'Mínimo 6 caracteres.'; return; }
 
   btn.disabled = true;
   btn.textContent = signupMode ? 'Creando…' : 'Entrando…';
@@ -107,11 +95,8 @@ $('#loginForm').addEventListener('submit', async (ev) => {
       remember ? firebase.auth.Auth.Persistence.LOCAL
                : firebase.auth.Auth.Persistence.SESSION
     );
-    if (signupMode) {
-      await auth.createUserWithEmailAndPassword(email, password);
-    } else {
-      await auth.signInWithEmailAndPassword(email, password);
-    }
+    if (signupMode) await auth.createUserWithEmailAndPassword(email, password);
+    else await auth.signInWithEmailAndPassword(email, password);
   } catch (e) {
     err.textContent = traducirError(e.code);
     btn.disabled = false;
@@ -122,20 +107,12 @@ $('#loginForm').addEventListener('submit', async (ev) => {
 function traducirError(code) {
   if (/wrong-password|user-not-found|invalid-credential/.test(code)) return 'Correo o contraseña incorrectos.';
   if (/invalid-email/.test(code)) return 'El correo no es válido.';
-  if (/email-already-in-use/.test(code)) return 'Ese correo ya tiene cuenta. Entra con él.';
-  if (/weak-password/.test(code)) return 'La contraseña es demasiado débil (mínimo 6 caracteres).';
-  if (/too-many-requests/.test(code)) return 'Demasiados intentos. Espera un momento.';
+  if (/email-already-in-use/.test(code)) return 'Ese correo ya tiene cuenta.';
+  if (/weak-password/.test(code)) return 'Contraseña demasiado débil (mín. 6).';
+  if (/too-many-requests/.test(code)) return 'Demasiados intentos. Espera.';
   if (/network/.test(code)) return 'Sin conexión con Firebase.';
   return code || 'Error al entrar';
 }
-
-$('#logoutBtn').addEventListener('click', async () => {
-  if (presenceTimer) clearInterval(presenceTimer);
-  if (deckRef) deckRef.off();
-  await auth.signOut();
-  state = {};
-  showLogin();
-});
 
 /* -------------------------- datos -------------------------- */
 
@@ -146,15 +123,17 @@ async function enterDeck(user) {
   showDeck();
   applyRole();
   firstSnapshot = true;
+  layoutSig = '';
   deckRef.on('value', (snap) => {
     state = snap.val() || {};
-    if (firstSnapshot) {
+    const sig = JSON.stringify(state.layout || {});
+    if (firstSnapshot || sig !== layoutSig) {
       firstSnapshot = false;
+      layoutSig = sig;
       render();
     } else {
       updateSliderValues();
       actualizarPresencia();
-      marcarSinAsignar();
       if (role === 'receiver') renderReceiverPanel();
     }
   });
@@ -163,47 +142,183 @@ async function enterDeck(user) {
   await registerDevice();
 }
 
+function showDeck() {
+  $('#loginView').classList.add('hidden');
+  $('#deckView').classList.remove('hidden');
+}
+
 async function ensureDefaults() {
   const snap = await deckRef.once('value');
   const cur = snap.val() || {};
   const patch = {};
-  if (!cur.layout)       patch.layout = DEFAULT_LAYOUT;
-  if (!cur.audio)        patch.audio = { master: 0, apps: {} };
+  if (!cur.layout) patch.layout = DEFAULT_LAYOUT;
+  if (!cur.audio) patch.audio = { master: 0, apps: {} };
   if (!cur.desiredAudio) patch.desiredAudio = { master: 0, apps: {} };
-  if (!cur.bindings)     patch.bindings = {};
-  if (!cur.presence)     patch.presence = { online: false, lastSeen: 0 };
+  if (!cur.bindings) patch.bindings = {};
+  if (!cur.presence) patch.presence = { online: false, lastSeen: 0 };
   if (Object.keys(patch).length) await deckRef.update(patch);
 }
 
 async function registerDevice() {
-  let deviceId = localStorage.getItem('deck_device_id');
-  if (!deviceId) {
-    deviceId = (crypto.randomUUID && crypto.randomUUID()) ||
-      ('dev-' + Math.random().toString(36).slice(2));
-    localStorage.setItem('deck_device_id', deviceId);
+  let id = localStorage.getItem('deck_device_id');
+  if (!id) {
+    id = (crypto.randomUUID && crypto.randomUUID()) || ('dev-' + Math.random().toString(36).slice(2));
+    localStorage.setItem('deck_device_id', id);
   }
   const ua = navigator.userAgent;
-  const label = /iPhone/i.test(ua) ? 'iPhone' : /Android/i.test(ua) ? 'Android' : 'Navegador';
-  await deckRef.child('trustedDevices').child(deviceId).set({ label, role, lastSeen: Date.now() });
-  const bar = $('#deviceBar');
-  bar.textContent = '✓ ' + (role === 'sender' ? 'Envío' : 'Recepción') + ' · ' + label;
-  bar.classList.remove('hidden');
+  const label = /iPhone|iPad/i.test(ua) ? 'iPhone' : /Android/i.test(ua) ? 'Android' : 'Navegador';
+  await deckRef.child('trustedDevices').child(id).set({ label, role, lastSeen: Date.now() });
 }
 
-/* -------------------------- rol del dispositivo -------------------------- */
+/* -------------------------- render -------------------------- */
+
+function getSpan(k) {
+  let s = parseInt(k.span, 10);
+  if (![1, 2, 4].includes(s)) s = 1;
+  if (k.type === 'slider' && s < 2) s = 2;
+  return s;
+}
+
+function render() {
+  const layout = state.layout || {};
+  const bg = layout.background || '#0f1115';
+  document.body.style.setProperty('--bg', bg);
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', bg);
+
+  const profiles = layout.profiles || {};
+  const active = layout.active || Object.keys(profiles)[0] || 'Stream';
+  $('#pageName').textContent = active;
+  const keys = (profiles[active] || {}).keys || [];
+
+  const grid = $('#grid');
+  grid.innerHTML = '';
+  keys.forEach((k) => grid.appendChild(makeKey(k)));
+  cellSize();
+  requestAnimationFrame(sizeSliders);
+}
+
+function cellSize() {
+  const cols = 8, gap = 6, pad = 12;
+  const cell = Math.max(48, Math.floor((window.innerWidth - pad - gap * (cols - 1)) / cols));
+  document.documentElement.style.setProperty('--cell', cell + 'px');
+}
+
+function makeKey(k) {
+  const s = getSpan(k);
+  let w, h;
+  if (k.type === 'slider') { w = s >= 4 ? 2 : 1; h = 2; }
+  else { w = s >= 4 ? 2 : (s === 2 ? 2 : 1); h = s >= 4 ? 2 : 1; }
+
+  const el = document.createElement('div');
+  el.className = 'key' + (k.type === 'slider' ? ' slider' : '');
+  el.style.setProperty('--w', w);
+  el.style.setProperty('--h', h);
+  el.style.background = k.color || '#34495e';
+
+  if (k.image && k.image.length < 500000) {
+    const img = document.createElement('img');
+    img.className = 'keyimg';
+    img.src = k.image;
+    el.appendChild(img);
+  }
+
+  const content = document.createElement('div');
+  content.className = 'keycontent';
+
+  if (k.type === 'slider') {
+    const ico = document.createElement('span');
+    ico.className = 'ico';
+    ico.textContent = k.icon || '🔊';
+    const wrap = document.createElement('div');
+    wrap.className = 'vslider';
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.min = '0';
+    input.max = '100';
+    input.dataset.target = k.target || 'master';
+    input.dataset.id = k.id;
+    input.addEventListener('input', () => {
+      lbl.textContent = (k.label || '') + ' ' + input.value + '%';
+      setDesired(input.dataset.target, Number(input.value));
+    });
+    input.addEventListener('pointerdown', () => { input.dataset.dragging = '1'; });
+    const end = () => { delete input.dataset.dragging; };
+    input.addEventListener('pointerup', end);
+    input.addEventListener('pointercancel', end);
+    wrap.appendChild(input);
+    const lbl = document.createElement('span');
+    lbl.className = 'lbl';
+    lbl.textContent = k.label || '';
+    content.append(ico, wrap, lbl);
+    el.appendChild(content);
+    requestAnimationFrame(sizeSliders);
+  } else {
+    content.innerHTML = '<span class="ico">' + (k.icon || '') + '</span>' +
+                        '<span class="lbl">' + (k.label || '') + '</span>';
+    el.appendChild(content);
+    el.onclick = () => sendCommand(k.id);
+  }
+  return el;
+}
+
+function sizeSliders() {
+  document.querySelectorAll('.vslider').forEach((wrap) => {
+    const input = wrap.querySelector('input');
+    if (input) input.style.width = Math.max(40, wrap.clientHeight) + 'px';
+  });
+}
+window.addEventListener('resize', () => { cellSize(); sizeSliders(); checkOrientation(); });
+
+function updateSliderValues() {
+  const audio = state.audio || {};
+  const desired = state.desiredAudio || {};
+  document.querySelectorAll('.vslider input').forEach((input) => {
+    const t = input.dataset.target;
+    let v = t === 'master' ? audio.master : (audio.apps || {})[t];
+    if (v == null) v = t === 'master' ? desired.master : (desired.apps || {})[t];
+    if (v == null) v = 0;
+    if (!input.dataset.dragging) {
+      input.value = Math.round(v);
+      const lbl = input.closest('.key').querySelector('.lbl');
+      if (lbl && lbl.textContent.includes('%')) {
+        const name = (currentKeys().find((k) => k.id === input.dataset.id) || {}).label || '';
+        lbl.textContent = name + ' ' + Math.round(v) + '%';
+      }
+    }
+  });
+}
+
+function currentKeys() {
+  const layout = state.layout || {};
+  const profiles = layout.profiles || {};
+  const active = layout.active || Object.keys(profiles)[0];
+  return (profiles[active] || {}).keys || [];
+}
+
+function sendCommand(keyId) {
+  deckRef.child('commands').push({ keyId, t: Date.now() });
+}
+
+function setDesired(target, value) {
+  if (!state.desiredAudio) state.desiredAudio = { master: 0, apps: {} };
+  if (!state.desiredAudio.apps) state.desiredAudio.apps = {};
+  if (target === 'master') state.desiredAudio.master = value;
+  else state.desiredAudio.apps[target] = value;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    deckRef.child('desiredAudio').set(state.desiredAudio);
+  }, 90);
+}
+
+/* -------------------------- rol / receptor -------------------------- */
 
 function applyRole() {
   const isSender = role === 'sender';
   $('#roleBtn').textContent = isSender ? '📱 Envío' : '💻 Recepción';
-  $('#roleBtn').title = isSender
-    ? 'Este dispositivo envía órdenes (Stream Deck / móvil)'
-    : 'Este dispositivo recibe órdenes (portátil)';
   $('#grid').classList.toggle('hidden', !isSender);
-  $('#deckHint').classList.toggle('hidden', !isSender);
-  $('#editBtn').classList.toggle('hidden', !isSender);
-  $('#profileSelect').classList.toggle('hidden', !isSender);
   $('#receiverPanel').classList.toggle('hidden', isSender);
   if (!isSender) renderReceiverPanel();
+  checkOrientation();
 }
 
 $('#roleBtn').addEventListener('click', async () => {
@@ -211,10 +326,26 @@ $('#roleBtn').addEventListener('click', async () => {
   localStorage.setItem('deck_role', role);
   applyRole();
   const id = localStorage.getItem('deck_device_id');
-  if (deckRef && id) {
-    await deckRef.child('trustedDevices').child(id).child('role').set(role);
-  }
+  if (deckRef && id) await deckRef.child('trustedDevices').child(id).child('role').set(role);
 });
+
+function checkOrientation() {
+  const portrait = window.innerHeight > window.innerWidth;
+  const deckVisible = !$('#deckView').classList.contains('hidden');
+  const show = role === 'sender' && deckVisible && portrait;
+  $('#rotateHint').classList.toggle('hidden', !show);
+}
+window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 150));
+
+function actualizarPresencia() {
+  const p = state.presence || {};
+  const age = p.lastSeen ? Date.now() - p.lastSeen : Infinity;
+  const online = age < 15000;
+  const el = $('#presence');
+  el.textContent = online ? '● PC' : '● PC apagado';
+  el.classList.toggle('online', online);
+  if (role === 'receiver') renderReceiverPanel();
+}
 
 function renderReceiverPanel() {
   const p = state.presence || {};
@@ -222,223 +353,58 @@ function renderReceiverPanel() {
   const online = age < 15000;
   const st = $('#receiverStatus');
   st.textContent = online
-    ? '● Daemon conectado y recibiendo órdenes' + (p.device ? ' en ' + p.device : '')
-    : '● Daemon desconectado — arranca python deck_daemon.py en el PC';
+    ? '● Daemon conectado' + (p.device ? ' en ' + p.device : '')
+    : '● Daemon desconectado — arranca python deck_daemon.py';
   st.classList.toggle('online', online);
 
   const b = state.bindings || {};
   const host = $('#receiverBindings');
   host.innerHTML = '';
   const ids = Object.keys(b);
-  if (!ids.length) {
-    host.innerHTML = '<span class="chip">Sin funciones asignadas</span>';
-    return;
-  }
+  if (!ids.length) { host.innerHTML = '<span class="chip">Sin funciones</span>'; return; }
   ids.forEach((id) => {
     const a = b[id] || {};
     const chip = document.createElement('span');
     chip.className = 'chip';
-    chip.innerHTML = '<b>' + id + '</b> · ' + (a.type || '?') + (a.value ? ' ' + a.value : '');
+    chip.innerHTML = '<b>' + id + '</b> · ' + (a.type || '?');
     host.appendChild(chip);
   });
 }
 
-$('#refreshReceiver').addEventListener('click', renderReceiverPanel);
+/* -------------------------- ajustes -------------------------- */
 
-function currentProfile() {
-  const profiles = (state.layout && state.layout.profiles) || DEFAULT_LAYOUT.profiles;
-  return profiles[state.layout.active] || profiles[Object.keys(profiles)[0]];
-}
+$('#settingsBtn').onclick = () => { applyRole(); $('#settingsDlg').showModal(); };
+$('#closeSettings').onclick = () => $('#settingsDlg').close();
 
-/* -------------------------- render -------------------------- */
-
-function render() {
-  const grid = $('#grid');
-  grid.innerHTML = '';
-  (currentProfile().keys || []).forEach((k) => grid.appendChild(makeKey(k)));
-  if (editing) {
-    const add = document.createElement('div');
-    add.className = 'key';
-    add.style.background = '#2c313c';
-    add.innerHTML = '<span class="ico">＋</span><span class="lbl">Añadir</span>';
-    add.onclick = () => openEditor(null);
-    grid.appendChild(add);
+$('#changePass').onclick = async () => {
+  const cur = $('#currentPass').value;
+  const nw = $('#newPass').value;
+  const rep = $('#repeatPass').value;
+  const msg = $('#passMsg');
+  msg.style.color = '';
+  if (nw.length < 6) { msg.textContent = 'Mínimo 6 caracteres.'; return; }
+  if (nw !== rep) { msg.textContent = 'Las nuevas no coinciden.'; return; }
+  try {
+    const user = auth.currentUser;
+    const cred = firebase.auth.EmailAuthProvider.credential(user.email, cur);
+    await user.reauthenticateWithCredential(cred);
+    await user.updatePassword(nw);
+    msg.style.color = '#7fe0a8';
+    msg.textContent = '✓ Contraseña cambiada. Actualiza pc/config.json o usa el editor del PC.';
+    ['#currentPass', '#newPass', '#repeatPass'].forEach((s) => { $(s).value = ''; });
+  } catch (e) {
+    msg.textContent = /wrong-password/.test(e.code)
+      ? 'Contraseña actual incorrecta.' : (e.message || 'Error');
   }
-  renderProfiles();
-  updateSliderValues();
-  marcarSinAsignar();
-}
+};
 
-function makeKey(k) {
-  const el = document.createElement('div');
-  el.className = 'key' + (k.type === 'slider' ? ' slider' : '');
-  el.style.background = k.color || '#34495e';
-  el.dataset.id = k.id;
-
-  if (k.type === 'slider') {
-    el.innerHTML =
-      '<span class="badge">✎</span>' +
-      '<span class="ico">' + (k.icon || '🔊') + '</span>' +
-      '<input type="range" min="0" max="100" value="0">' +
-      '<span class="value">0%</span>' +
-      '<span class="lbl">' + (k.label || '') + '</span>';
-    const range = el.querySelector('input');
-    const out = el.querySelector('.value');
-    range.addEventListener('input', () => {
-      out.textContent = range.value + '%';
-      if (!editing) setDesired(k.target || 'master', Number(range.value));
-    });
-    range.addEventListener('pointerdown', () => { range.dataset.dragging = '1'; });
-    range.addEventListener('pointerup', () => { delete range.dataset.dragging; });
-    el.addEventListener('click', (e) => {
-      if (editing && e.target.tagName !== 'INPUT') openEditor(k.id);
-    });
-  } else {
-    el.innerHTML =
-      '<span class="badge">✎</span>' +
-      '<span class="ico">' + (k.icon || '•') + '</span>' +
-      '<span class="lbl">' + (k.label || '') + '</span>';
-    el.onclick = () => editing ? openEditor(k.id) : sendCommand(k.id);
-  }
-  return el;
-}
-
-function updateSliderValues() {
-  const audio = state.audio || {};
-  document.querySelectorAll('.key.slider').forEach((el) => {
-    const key = (currentProfile().keys || []).find((k) => k.id === el.dataset.id);
-    if (!key) return;
-    const target = key.target || 'master';
-    let val = target === 'master' ? audio.master : (audio.apps || {})[target];
-    if (val == null && desiredAudio) {
-      val = target === 'master' ? desiredAudio.master : (desiredAudio.apps || {})[target];
-    }
-    if (val == null) val = 0;
-    const range = el.querySelector('input');
-    if (range && !range.dataset.dragging) {
-      range.value = Math.round(val);
-      el.querySelector('.value').textContent = Math.round(val) + '%';
-    }
-  });
-}
-
-function renderProfiles() {
-  const sel = $('#profileSelect');
-  sel.innerHTML = '';
-  Object.keys(state.layout.profiles).forEach((name) => {
-    const o = document.createElement('option');
-    o.value = name; o.textContent = name;
-    if (name === state.layout.active) o.selected = true;
-    sel.appendChild(o);
-  });
-}
-
-$('#profileSelect').addEventListener('change', async (e) => {
-  state.layout.active = e.target.value;
-  await deckRef.child('layout').set(state.layout);
-  render();
-});
-
-/* -------------------------- acciones -------------------------- */
-
-function sendCommand(keyId) {
-  deckRef.child('commands').push({ keyId, t: Date.now() });
-  const el = document.querySelector('.key[data-id="' + keyId + '"]');
-  if (el) {
-    el.style.filter = 'brightness(1.5)';
-    setTimeout(() => { el.style.filter = ''; }, 130);
-  }
-}
-
-function setDesired(target, value) {
-  if (!desiredAudio) desiredAudio = JSON.parse(JSON.stringify(state.desiredAudio || {}));
-  if (!desiredAudio.apps) desiredAudio.apps = {};
-  if (target === 'master') desiredAudio.master = value;
-  else desiredAudio.apps[target] = value;
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => deckRef.child('desiredAudio').set(desiredAudio), 90);
-}
-
-function actualizarPresencia() {
-  const el = $('#presence');
-  const p = state.presence || {};
-  const age = p.lastSeen ? Date.now() - p.lastSeen : Infinity;
-  const online = age < 15000;
-  el.textContent = online ? '● PC en línea' : '● PC desconectado';
-  el.className = 'presence' + (online ? ' online' : '');
-  if (!online) $('#deviceBar').classList.add('hidden');
-  if (role === 'receiver') renderReceiverPanel();
-}
-
-function marcarSinAsignar() {
-  const bindings = state.bindings || {};
-  document.querySelectorAll('.key').forEach((el) => {
-    const id = el.dataset.id;
-    if (!id) return;
-    el.style.opacity = Object.prototype.hasOwnProperty.call(bindings, id) ? '1' : '.55';
-  });
-}
-
-/* -------------------------- editor -------------------------- */
-
-$('#editBtn').addEventListener('click', () => {
-  editing = !editing;
-  document.body.classList.toggle('editing', editing);
-  $('#editBtn').textContent = editing ? 'Listo' : 'Editar';
-  render();
-});
-
-function openEditor(id) {
-  currentKeyId = id;
-  const k = id ? (currentProfile().keys || []).find((x) => x.id === id) : null;
-  const f = $('#editorForm');
-  f.elements.label.value = k ? k.label || '' : '';
-  f.elements.icon.value = k ? k.icon || '' : '';
-  f.elements.color.value = k ? k.color || '#3498db' : '#3498db';
-  f.elements.type.value = k ? k.type || 'button' : 'button';
-  f.elements.target.value = k && k.target ? k.target : 'master';
-  toggleTarget();
-  $('#deleteKeyBtn').style.display = id ? 'block' : 'none';
-  $('#editorTitle').textContent = id ? 'Editar control' : 'Nuevo control';
-  $('#editorDlg').showModal();
-}
-
-function toggleTarget() {
-  const isSlider = $('#editorForm').elements.type.value === 'slider';
-  $('#targetLabel').classList.toggle('hidden', !isSlider);
-  $('#editorForm').elements.target.classList.toggle('hidden', !isSlider);
-}
-$('#editorForm').elements.type.addEventListener('change', toggleTarget);
-toggleTarget();
-
-$('#saveKeyBtn').addEventListener('click', async () => {
-  const f = $('#editorForm');
-  const data = {
-    label: f.elements.label.value.trim() || 'Sin nombre',
-    icon: f.elements.icon.value.trim() || '•',
-    color: f.elements.color.value,
-    type: f.elements.type.value
-  };
-  if (data.type === 'slider') data.target = f.elements.target.value.trim() || 'master';
-  const keys = currentProfile().keys;
-  if (currentKeyId) {
-    const idx = keys.findIndex((x) => x.id === currentKeyId);
-    keys[idx] = { ...keys[idx], ...data };
-  } else {
-    keys.push({ id: 'k' + Date.now(), ...data });
-  }
-  await deckRef.child('layout').set(state.layout);
-  $('#editorDlg').close();
-  render();
-});
-
-$('#deleteKeyBtn').addEventListener('click', async () => {
-  const keys = currentProfile().keys;
-  const idx = keys.findIndex((x) => x.id === currentKeyId);
-  if (idx >= 0) keys.splice(idx, 1);
-  await deckRef.child('layout').set(state.layout);
-  $('#editorDlg').close();
-  render();
-});
+$('#logoutBtn').onclick = async () => {
+  if (presenceTimer) clearInterval(presenceTimer);
+  if (deckRef) deckRef.off();
+  await auth.signOut();
+  state = {};
+  $('#settingsDlg').close();
+  showLogin();
+};
 
 boot();
