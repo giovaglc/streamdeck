@@ -392,8 +392,8 @@ function renderReceiverPanel() {
 $('#settingsBtn').onclick = async () => {
   applyRole();
   if (deckRef) {
-    const snap = await deckRef.child('settings/batPath').once('value');
-    $('#batPath').value = snap.val() || localStorage.getItem('deck_bat_path') || '';
+    const snap = await deckRef.child('settings/configPath').once('value');
+    $('#batPath').value = snap.val() || localStorage.getItem('deck_config_path') || '';
   }
   $('#settingsDlg').showModal();
 };
@@ -401,17 +401,14 @@ $('#settingsBtn').onclick = async () => {
 $('#saveBatPath').onclick = async () => {
   const path = $('#batPath').value.trim();
   if (!path) return;
-  localStorage.setItem('deck_bat_path', path);
-  if (deckRef) await deckRef.child('settings/batPath').set(path);
+  localStorage.setItem('deck_config_path', path);
+  if (deckRef) await deckRef.child('settings/configPath').set(path);
 };
 
 $('#runBatBtn').onclick = () => {
-  $('#saveBatPath').click();
-  window.location.href = 'streamdeck://connect';
-};
-
-$('#runMamaBtn').onclick = () => {
-  window.location.href = 'streamdeck-mama://connect';
+  const path = $('#batPath').value.trim() || localStorage.getItem('deck_config_path') || '';
+  const url = 'streamdeck://connect' + (path ? '?config=' + encodeURIComponent(path) : '');
+  window.location.href = url;
 };
 $('#closeSettings').onclick = () => $('#settingsDlg').close();
 

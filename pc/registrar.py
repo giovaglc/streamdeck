@@ -37,26 +37,21 @@ def main():
     root = winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\Classes\streamdeck")
     winreg.SetValue(root, "", winreg.REG_SZ, "URL:Stream Deck")
     winreg.SetValueEx(root, "URL Protocol", 0, winreg.REG_SZ, "")
+    launcher = os.path.join(BASE, "iniciar.py")
     cmd = winreg.CreateKey(root, r"shell\open\command")
     winreg.SetValue(cmd, "", winreg.REG_SZ,
-                    '"%s" -u "%s"' % (sys.executable, daemon))
+                    '"%s" -u "%s" "%%1"' % (sys.executable, launcher))
     winreg.CloseKey(cmd)
     winreg.CloseKey(root)
 
-    # Segundo protocolo para la cuenta de mamá
-    mama_cfg = os.path.join(BASE, "config-mama.json")
-    root2 = winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\Classes\streamdeck-mama")
-    winreg.SetValue(root2, "", winreg.REG_SZ, "URL:Stream Deck Mama")
-    winreg.SetValueEx(root2, "URL Protocol", 0, winreg.REG_SZ, "")
-    cmd2 = winreg.CreateKey(root2, r"shell\open\command")
-    winreg.SetValue(cmd2, "", winreg.REG_SZ,
-                    '"%s" -u "%s" --config "%s"' % (sys.executable, daemon, mama_cfg))
-    winreg.CloseKey(cmd2)
-    winreg.CloseKey(root2)
+    # limpiar protocolo antiguo específico si existiera
+    try:
+        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, r"Software\Classes\streamdeck-mama")
+    except Exception:
+        pass
 
-    print("Protocolos registrados:")
-    print("  streamdeck://      -> " + daemon)
-    print("  streamdeck-mama:// -> " + daemon + " --config " + mama_cfg)
+    print("Protocolo streamdeck:// registrado.")
+    print("Cada usuario pone su ruta en la web y pulsa Conectar PC.")
     print("Ya puedes pulsar «Conectar PC» en la web.")
 
 

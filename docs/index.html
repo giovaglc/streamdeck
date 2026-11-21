@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Stream Deck</title>
-<link rel="stylesheet" href="styles.css?v=17">
+<link rel="stylesheet" href="styles.css?v=18">
 </head>
 <body>
 
@@ -138,12 +138,11 @@
 
   <hr>
   <div class="dlg-title">Conectar PC desde la web</div>
-  <label>Ruta de deck_daemon.py (informativa)</label>
-  <input id="batPath" type="text" placeholder="C:\...\streamdeck\pc\deck_daemon.py">
+  <label>Ruta de tu configuración (.json) en el PC</label>
+  <input id="batPath" type="text" placeholder="C:\...\streamdeck\pc\config.json">
   <button id="saveBatPath" class="ghost">Guardar ruta</button>
   <button id="runBatBtn" class="primary">🚀 Conectar PC</button>
-  <button id="runMamaBtn" class="ghost">🚀 Conectar PC (mamá)</button>
-  <p class="hint">Primera vez: ejecuta «Registrar protocolo.bat» en el PC.</p>
+  <p class="hint">Cada usuario pone su propia ruta. Primera vez en el PC: ejecuta «Registrar protocolo.bat».</p>
 
   <hr>
   <div class="dlg-title">Cambiar contraseña</div>
@@ -162,8 +161,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="config.js?v=17"></script>
-<script src="app.js?v=17"></script>
-<script src="editor.js?v=17"></script>
+<script src="config.js?v=18"></script>
+<script src="app.js?v=18"></script>
+<script src="editor.js?v=18"></script>
 </body>
 </html>
+
