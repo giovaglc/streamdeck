@@ -386,7 +386,26 @@ function renderReceiverPanel() {
 
 /* -------------------------- ajustes -------------------------- */
 
-$('#settingsBtn').onclick = () => { applyRole(); $('#settingsDlg').showModal(); };
+$('#settingsBtn').onclick = async () => {
+  applyRole();
+  if (deckRef) {
+    const snap = await deckRef.child('settings/batPath').once('value');
+    $('#batPath').value = snap.val() || localStorage.getItem('deck_bat_path') || '';
+  }
+  $('#settingsDlg').showModal();
+};
+
+$('#saveBatPath').onclick = async () => {
+  const path = $('#batPath').value.trim();
+  if (!path) return;
+  localStorage.setItem('deck_bat_path', path);
+  if (deckRef) await deckRef.child('settings/batPath').set(path);
+};
+
+$('#runBatBtn').onclick = () => {
+  $('#saveBatPath').click();
+  window.location.href = 'streamdeck://connect';
+};
 $('#closeSettings').onclick = () => $('#settingsDlg').close();
 
 $('#changePass').onclick = async () => {
