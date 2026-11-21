@@ -12,7 +12,7 @@ la Stream Deck que le manda el portátil.
 
 - Editor del PC: **http://localhost:8000** (solo en este equipo)
 - Stream Deck del móvil: **https://giovaglc.github.io/streamdeck/**
-- Usuario: `giocavallic@gmail.com` · contraseña: la del chat
+- Usuario: `giova.deck@gmail.com` · contraseña: la del chat
 
 ## Arrancar el PC
 
