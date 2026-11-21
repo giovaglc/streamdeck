@@ -129,7 +129,13 @@ async function enterDeck(user) {
   badge.classList.toggle('wrong', wrong);
   const warn = $('#accountWarn');
   warn.classList.toggle('hidden', !wrong);
-  if (wrong) warn.textContent = '⚠ Estás con ' + email + '. El PC usa ' + CFG.ACCOUNT_EMAIL + '. Sal y entra con esa cuenta.';
+  if (wrong) {
+    warn.textContent = '⚠ Sesión antigua detectada. Te he sacado: entra con ' + CFG.ACCOUNT_EMAIL + '.';
+    localStorage.setItem('deck_email', CFG.ACCOUNT_EMAIL);
+    localStorage.setItem('deck_remember', '1');
+    setTimeout(() => auth.signOut(), 500);
+    return;
+  }
   deckRef = db.ref('decks/' + uid);
   await ensureDefaults();
   showDeck();
