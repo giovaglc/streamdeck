@@ -14,7 +14,7 @@ Coste: **0 €**.
 
 - Proyecto: **My First Project** → ID `careful-plexus-402813` (plan Spark)
 - Usuario: `giocavallic@gmail.com`
-- Contraseña: `Deck-Movil-2026!` (cámbiala en Firebase Console → Authentication → Users si quieres)
+- Contraseña: la que te pasé en el chat (cámbiala en Firebase Console → Authentication → Users si quieres)
 - Realtime Database: `https://careful-plexus-402813-default-rtdb.firebaseio.com`
 - Reglas publicadas (en `firebase/rules.json`): cada usuario solo ve su propio `decks/<uid>`
 
