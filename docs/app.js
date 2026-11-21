@@ -195,6 +195,7 @@ function render() {
   keys.forEach((k) => grid.appendChild(makeKey(k)));
   cellSize();
   requestAnimationFrame(sizeSliders);
+  setTimeout(sizeSliders, 60);
 }
 
 function cellSize() {

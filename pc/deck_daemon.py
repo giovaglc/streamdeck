@@ -520,7 +520,8 @@ def main():
                 desired = deck.get("desiredAudio") or {}
                 master = desired.get("master")
                 if master is not None and last_applied.get("master") != master:
-                    set_master_volume(int(master))
+                    ok = set_master_volume(int(master))
+                    print("[audio] aplicar master", master, "->", ok)
                     last_applied["master"] = master
                 for proc, level in (desired.get("apps") or {}).items():
                     key = "app:" + str(proc).lower()
@@ -531,6 +532,7 @@ def main():
                 if now - last_audio_publish > 1.0:
                     actual = real_audio_state()
                     if actual != last_audio:
+                        print("[audio] publicar", actual)
                         fb.patch({"audio": actual})
                         last_audio = actual
                     last_audio_publish = now
