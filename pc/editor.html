@@ -112,6 +112,11 @@ async function load(){
   try{
     const s=await api('/api/state');
     layout=s.layout; bindings=s.bindings||{}; current=layout.active;
+    Object.values(layout.profiles).forEach(p=>{
+      if(!Array.isArray(p.keys)){
+        p.keys=Object.keys(p.keys||{}).sort((a,b)=>Number(a)-Number(b)).map(k=>p.keys[k]).filter(x=>x&&typeof x==='object');
+      }
+    });
     renderAll(); status('● Conectado','ok');
   }catch(e){status('● Sin conexión con el daemon','err');}
 }

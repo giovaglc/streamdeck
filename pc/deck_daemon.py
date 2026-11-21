@@ -347,12 +347,17 @@ def normalize_layout(layout):
         if not isinstance(page, dict):
             continue
         keys = page.get("keys")
+        if isinstance(keys, dict):
+            keys = [v for k, v in sorted(
+                keys.items(),
+                key=lambda kv: int(kv[0]) if str(kv[0]).lstrip('-').isdigit() else 0
+            ) if str(k).lstrip('-').isdigit() and int(k) >= 0 and isinstance(v, dict)]
         if not isinstance(keys, list):
-            page["keys"] = []
-            keys = page["keys"]
-        for item in keys:
-            if not isinstance(item, dict):
-                continue
+            keys = []
+        keys = [item for item in keys if isinstance(item, dict)]
+        page["keys"] = keys
+        for idx, item in enumerate(keys):
+            item.setdefault("id", "k%d" % idx)
             item.setdefault("type", "button")
             span = item.get("span", 2 if item["type"] == "slider" else 1)
             try:

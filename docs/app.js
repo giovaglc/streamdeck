@@ -192,7 +192,7 @@ function render() {
   const profiles = layout.profiles || {};
   const active = layout.active || Object.keys(profiles)[0] || 'Stream';
   $('#pageName').textContent = active;
-  const keys = (profiles[active] || {}).keys || [];
+  const keys = currentKeys();
 
   const grid = $('#grid');
   grid.innerHTML = '';
@@ -298,7 +298,12 @@ function currentKeys() {
   const layout = state.layout || {};
   const profiles = layout.profiles || {};
   const active = layout.active || Object.keys(profiles)[0];
-  return (profiles[active] || {}).keys || [];
+  const raw = (profiles[active] || {}).keys || [];
+  if (Array.isArray(raw)) return raw;
+  return Object.keys(raw)
+    .sort((a, b) => Number(a) - Number(b))
+    .map((k) => raw[k])
+    .filter((x) => x && typeof x === 'object');
 }
 
 function sendCommand(keyId) {
