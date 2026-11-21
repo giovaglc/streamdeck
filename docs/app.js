@@ -199,7 +199,11 @@ function render() {
 
   const grid = $('#grid');
   grid.innerHTML = '';
-  keys.forEach((k) => grid.appendChild(makeKey(k)));
+  keys.forEach((k, i) => {
+    const el = makeKey(k);
+    el.style.animationDelay = (i * 35) + 'ms';
+    grid.appendChild(el);
+  });
   cellSize();
   requestAnimationFrame(sizeSliders);
   setTimeout(sizeSliders, 60);
@@ -223,7 +227,7 @@ function makeKey(k) {
   el.className = 'key' + (k.type === 'slider' ? ' slider' : '');
   el.style.setProperty('--w', w);
   el.style.setProperty('--h', h);
-  el.style.background = k.color || '#34495e';
+  el.style.setProperty('--keycolor', k.color || '#34495e');
 
   if (k.image && k.image.length < 500000) {
     const img = document.createElement('img');
@@ -312,6 +316,12 @@ function currentKeys() {
 }
 
 function sendCommand(keyId) {
+  if (navigator.vibrate) navigator.vibrate(18);
+  const el = document.querySelector('.key[data-id="' + keyId + '"]');
+  if (el) {
+    el.classList.add('pressed');
+    setTimeout(() => el.classList.remove('pressed'), 260);
+  }
   deckRef.child('commands').push({ keyId, t: Date.now() });
 }
 
