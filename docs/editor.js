@@ -190,8 +190,48 @@ function edRenderItems() {
       '<div class="ed-full"><label style="font-size:10px;color:#7d879b">Imagen (URL o archivo)</label>' +
       '<div class="ed-row"><input class="f-image" placeholder="https://…">' +
       '<input class="f-file" type="file" accept="image/*" style="max-width:110px"></div></div>' +
+      '<div class="ed-full"><label>Función del botón</label><select class="f-func"><option value="">Sin función</option></select></div>' +
       '<div class="ed-sizes"></div>';
     card.querySelector('.f-image').value = item.image || '';
+
+    const fsel = card.querySelector('.f-func');
+    const names = Object.keys(edFunctions);
+    names.forEach((n) => {
+      const o = document.createElement('option');
+      o.value = n; o.textContent = n;
+      fsel.appendChild(o);
+    });
+    const current = edBindings[item.id];
+    let matched = '';
+    if (current) {
+      matched = names.find((n) => {
+        const f = edFunctions[n];
+        return f && f.type === current.type &&
+          (f.value || '') === (current.value || '') &&
+          (f.level || '') === (current.level || '');
+      }) || '';
+      if (!matched) {
+        const o = document.createElement('option');
+        o.value = '__custom'; o.textContent = '(función personalizada)';
+        fsel.appendChild(o);
+        matched = '__custom';
+      }
+    }
+    fsel.value = matched;
+    fsel.onchange = (ev) => {
+      const n = ev.target.value;
+      if (!n) {
+        delete edBindings[item.id];
+        edBindDirty[item.id] = null;
+      } else if (n === '__custom') {
+        edRenderItems();
+        return;
+      } else {
+        edBindings[item.id] = edClone(edFunctions[n]);
+        edMarkBind(item.id);
+      }
+      edSaveBindings();
+    };
 
     const type = card.querySelector('.f-type');
     type.value = item.type || 'button';
