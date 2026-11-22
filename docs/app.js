@@ -162,6 +162,7 @@ async function ensureDefaults() {
   if (!cur.audio) patch.audio = { master: 0, apps: {} };
   if (!cur.desiredAudio) patch.desiredAudio = { master: 0, apps: {} };
   if (!cur.bindings) patch.bindings = {};
+  if (!cur.functions) patch.functions = {};
   if (!cur.presence) patch.presence = { online: false, lastSeen: 0 };
   if (Object.keys(patch).length) await deckRef.update(patch);
 }

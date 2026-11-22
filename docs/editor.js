@@ -2,6 +2,7 @@
 
 let edLayout = null;
 let edBindings = {};
+let edFunctions = {};
 let edPage = null;
 let edSaveTimer = null;
 let edBindTimer = null;
@@ -22,6 +23,7 @@ function openEditor() {
   if (!deckRef || !state.layout) return;
   edLayout = edClone(state.layout);
   edBindings = edClone(state.bindings || {});
+  edFunctions = edClone(state.functions || {});
   edBindDirty = {};
   edPage = edLayout.active;
   $('#deckView').classList.add('hidden');
@@ -85,6 +87,7 @@ function edRenderAll() {
   edRenderPreview();
   edRenderItems();
   edRenderBindings();
+  edRefreshFunctionLists();
   ed('#edBg').value = edLayout.background || '#0f1115';
   ed('#edBgHex').textContent = edLayout.background || '#0f1115';
 }
@@ -301,6 +304,73 @@ function edAllControls() {
   });
   return out;
 }
+
+function edRefreshFunctionLists() {
+  const pick = $('#edFuncPick');
+  if (!pick) return;
+  const old = pick.value;
+  pick.innerHTML = '<option value="">Elige una función…</option>';
+  Object.keys(edFunctions).forEach((name) => {
+    const o = document.createElement('option');
+    o.value = name; o.textContent = name;
+    pick.appendChild(o);
+  });
+  pick.value = old;
+
+  const target = $('#edFuncTarget');
+  const oldT = target.value;
+  target.innerHTML = '<option value="">Botón destino…</option>';
+  edAllControls().forEach((c) => {
+    const o = document.createElement('option');
+    o.value = c.id; o.textContent = c.label + ' · ' + c.page;
+    target.appendChild(o);
+  });
+  target.value = oldT;
+
+  const vals = new Set(['next', 'prev', 'playpause', 'mute', 'https://www.youtube.com',
+    'https://open.spotify.com', 'spotify:', 'explorer.exe', 'ctrl+shift+p', 'win+r']);
+  Object.values(edFunctions).forEach((f) => { if (f && f.value) vals.add(f.value); });
+  Object.values(edBindings).forEach((b) => { if (b && b.value) vals.add(b.value); });
+  $('#edValHints').innerHTML = Array.from(vals)
+    .map((v) => '<option value="' + String(v).replace(/"/g, '&quot;') + '"></option>').join('');
+}
+
+async function edSaveFunctions() {
+  edStatus('Guardando…', true);
+  await deckRef.child('functions').set(edFunctions);
+  state.functions = edClone(edFunctions);
+  edRefreshFunctionLists();
+  edStatus('Guardado ✓');
+}
+
+$('#edFuncSave').onclick = async () => {
+  const name = $('#edFuncName').value.trim();
+  if (!name) { alert('Pon un nombre a la función'); return; }
+  edFunctions[name] = {
+    type: $('#edFuncType').value,
+    value: $('#edFuncValue').value.trim(),
+  };
+  const lvl = $('#edFuncLevel').value.trim();
+  if (lvl) edFunctions[name].level = lvl;
+  await edSaveFunctions();
+};
+
+$('#edFuncDel').onclick = async () => {
+  const name = $('#edFuncPick').value;
+  if (!name) return;
+  delete edFunctions[name];
+  await edSaveFunctions();
+};
+
+$('#edFuncApply').onclick = () => {
+  const id = $('#edFuncTarget').value;
+  const name = $('#edFuncPick').value;
+  if (!id || !name || !edFunctions[name]) return;
+  edBindings[id] = edClone(edFunctions[name]);
+  edMarkBind(id);
+  edSaveBindings();
+  edRenderBindings();
+};
 
 function edRenderBindings() {
   const host = ed('#edBindings');

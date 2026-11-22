@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Stream Deck</title>
-<link rel="stylesheet" href="styles.css?v=29">
+<link rel="stylesheet" href="styles.css?v=30">
 </head>
 <body>
 
@@ -105,7 +105,20 @@
       </div>
 
       <div id="tab-bindings" class="ed-tab hidden">
-        <p class="ed-hint">Elige el botón por su nombre y pon qué debe hacer. Ejemplos: <b>media</b> → next / prev / playpause / mute · <b>url</b> → https://… · <b>app</b> → ruta o <i>spotify:</i> · <b>key</b> → ctrl+shift+p.</p>
+        <div class="ed-card" style="margin-bottom:12px">
+          <h3>Mis funciones</h3>
+          <p class="ed-hint">Crea una función una vez y asígnalla a cualquier botón desde el desplegable.</p>
+          <div class="ed-row"><select id="edFuncTarget"><option value="">Botón destino…</option></select>
+            <select id="edFuncPick"><option value="">Elige una función…</option></select>
+            <button id="edFuncApply" class="ed-add">Asignar</button></div>
+          <div class="ed-row"><input id="edFuncName" placeholder="Nombre (ej. Abrir Spotify)">
+            <select id="edFuncType"><option>url</option><option>app</option><option>cmd</option><option>volume</option><option>media</option><option>key</option><option>volume_master</option><option>volume_app</option></select></div>
+          <div class="ed-row"><input id="edFuncValue" placeholder="Valor (URL, ruta, next…)" list="edValHints">
+            <input id="edFuncLevel" placeholder="nivel" style="max-width:80px">
+            <button id="edFuncSave" class="ed-add">Guardar</button>
+            <button id="edFuncDel" class="ed-soft danger">Borrar</button></div>
+        </div>
+        <p class="ed-hint">Elige el botón por su nombre y selecciona su función. Los desplegables salen de tus funciones guardadas.</p>
         <datalist id="edValHints">
           <option value="next"></option><option value="prev"></option>
           <option value="playpause"></option><option value="mute"></option>
@@ -169,9 +182,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="config.js?v=29"></script>
-<script src="app.js?v=29"></script>
-<script src="editor.js?v=29"></script>
+<script src="config.js?v=30"></script>
+<script src="app.js?v=30"></script>
+<script src="editor.js?v=30"></script>
 </body>
 </html>
 
