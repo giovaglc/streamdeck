@@ -343,3 +343,6 @@ dialog::backdrop{backdrop-filter:blur(6px)}
 .ed-move:hover{filter:brightness(1.3)}
 .ed-item.dragging{opacity:.45;transform:scale(.98)}
 .ed-item.over{outline:2px dashed #5b8def;outline-offset:2px;transform:translateY(-3px)}
+.ed-preview .pv{cursor:grab;transition:transform .12s,filter .12s}
+.ed-preview .pv:hover{filter:brightness(1.3);transform:scale(1.06)}
+.ed-preview .pv:active{cursor:grabbing}

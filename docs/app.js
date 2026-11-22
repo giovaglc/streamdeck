@@ -227,6 +227,8 @@ function makeKey(k) {
   el.className = 'key' + (k.type === 'slider' ? ' slider' : '');
   el.style.setProperty('--w', w);
   el.style.setProperty('--h', h);
+  if (k.col) el.style.gridColumnStart = String(k.col);
+  if (k.row) el.style.gridRowStart = String(k.row);
   el.style.setProperty('--keycolor', k.color || '#34495e');
 
   if (k.image && k.image.length < 500000) {

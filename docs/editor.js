@@ -92,18 +92,43 @@ function edRenderPages() {
 function edRenderPreview() {
   const host = ed('#edPreview');
   host.innerHTML = '';
-  edKeys().forEach((k) => {
+  edKeys().forEach((k, idx) => {
     const s = parseInt(k.span, 10) || 1;
     let w = s, h = 1;
     if (k.type === 'slider') { w = s >= 4 ? 2 : 1; h = 2; }
     else if (s === 4) { w = 2; h = 2; }
     const el = document.createElement('div');
     el.className = 'pv';
-    el.style.gridColumn = 'span ' + w;
-    el.style.gridRow = 'span ' + h;
+    el.style.gridColumn = k.col ? String(k.col) + ' / span ' + w : 'span ' + w;
+    el.style.gridRow = k.row ? String(k.row) + ' / span ' + h : 'span ' + h;
     el.style.background = k.color || '#34495e';
     el.textContent = k.icon || '';
+    el.draggable = true;
+    el.dataset.idx = String(idx);
+    el.title = 'Arrastra a otra casilla';
     host.appendChild(el);
+  });
+
+  // Colocar libremente arrastrando en la vista previa
+  let dragIdx = null;
+  host.querySelectorAll('.pv').forEach((tile) => {
+    tile.addEventListener('dragstart', (ev) => {
+      dragIdx = Number(tile.dataset.idx);
+      ev.dataTransfer.effectAllowed = 'move';
+      ev.dataTransfer.setData('text/plain', String(dragIdx));
+    });
+  });
+  host.addEventListener('dragover', (ev) => { ev.preventDefault(); });
+  host.addEventListener('drop', (ev) => {
+    ev.preventDefault();
+    if (dragIdx === null) return;
+    const r = host.getBoundingClientRect();
+    const col = Math.max(1, Math.min(7, Math.floor((ev.clientX - r.left) / (r.width / 7)) + 1));
+    const row = Math.max(1, Math.min(3, Math.floor((ev.clientY - r.top) / (r.height / 3)) + 1));
+    const item = edKeys()[dragIdx];
+    if (item) { item.col = col; item.row = row; }
+    dragIdx = null;
+    edRenderPreview(); edRenderItems(); edSave();
   });
 }
 
@@ -128,6 +153,8 @@ function edRenderItems() {
       '<div><label>Icono</label><input class="f-icon" value="' + (item.icon || '') + '" maxlength="8"></div>' +
       '<div><label>Color</label><input class="f-color" type="color" value="' + (item.color || '#3498db') + '"></div>' +
       '<div><label>Objetivo (slider)</label><input class="f-target" value="' + (item.target || 'master') + '"></div>' +
+      '<div><label>Columna (0=auto)</label><input class="f-col" type="number" min="0" max="7" value="' + (item.col || 0) + '"></div>' +
+      '<div><label>Fila (0=auto)</label><input class="f-row" type="number" min="0" max="3" value="' + (item.row || 0) + '"></div>' +
       '</div>' +
       '<div class="ed-full"><label style="font-size:10px;color:#7d879b">Imagen (URL o archivo)</label>' +
       '<div class="ed-row"><input class="f-image" placeholder="https://…">' +
@@ -150,6 +177,13 @@ function edRenderItems() {
     bind('.f-icon', 'icon');
     bind('.f-color', 'color');
     bind('.f-target', 'target');
+    [['.f-col', 'col'], ['.f-row', 'row']].forEach(([sel, field]) => {
+      card.querySelector(sel).addEventListener('input', (ev) => {
+        const n = parseInt(ev.target.value, 10) || 0;
+        if (n) item[field] = n; else delete item[field];
+        edRenderPreview(); edSave();
+      });
+    });
     bind('.f-image', 'image');
 
     type.addEventListener('change', () => {
