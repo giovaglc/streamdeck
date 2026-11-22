@@ -99,8 +99,12 @@ function edRenderPreview() {
     else if (s === 4) { w = 2; h = 2; }
     const el = document.createElement('div');
     el.className = 'pv';
-    el.style.gridColumn = k.col ? String(k.col) + ' / span ' + w : 'span ' + w;
-    el.style.gridRow = k.row ? String(k.row) + ' / span ' + h : 'span ' + h;
+    let col = parseInt(k.col, 10) || 0;
+    let row = parseInt(k.row, 10) || 0;
+    if (col) col = Math.max(1, Math.min(col, 8 - w));
+    if (row) row = Math.max(1, Math.min(row, 4 - h));
+    el.style.gridColumn = col ? col + ' / span ' + w : 'span ' + w;
+    el.style.gridRow = row ? row + ' / span ' + h : 'span ' + h;
     el.style.background = k.color || '#34495e';
     el.textContent = k.icon || '';
     el.draggable = true;
@@ -126,7 +130,13 @@ function edRenderPreview() {
     const col = Math.max(1, Math.min(7, Math.floor((ev.clientX - r.left) / (r.width / 7)) + 1));
     const row = Math.max(1, Math.min(3, Math.floor((ev.clientY - r.top) / (r.height / 3)) + 1));
     const item = edKeys()[dragIdx];
-    if (item) { item.col = col; item.row = row; }
+    if (item) {
+      const s = parseInt(item.span, 10) || 1;
+      const w = item.type === 'slider' ? (s >= 4 ? 2 : 1) : (s >= 4 ? 2 : (s === 2 ? 2 : 1));
+      const h = item.type === 'slider' ? 2 : (s >= 4 ? 2 : 1);
+      item.col = Math.max(1, Math.min(col, 8 - w));
+      item.row = Math.max(1, Math.min(row, 4 - h));
+    }
     dragIdx = null;
     edRenderPreview(); edRenderItems(); edSave();
   });

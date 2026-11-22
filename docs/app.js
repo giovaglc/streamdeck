@@ -227,8 +227,12 @@ function makeKey(k) {
   el.className = 'key' + (k.type === 'slider' ? ' slider' : '');
   el.style.setProperty('--w', w);
   el.style.setProperty('--h', h);
-  el.style.gridColumn = (k.col ? k.col : 'auto') + ' / span ' + w;
-  el.style.gridRow = (k.row ? k.row : 'auto') + ' / span ' + h;
+  let col = parseInt(k.col, 10) || 0;
+  let row = parseInt(k.row, 10) || 0;
+  if (col) col = Math.max(1, Math.min(col, 8 - w));
+  if (row) row = Math.max(1, Math.min(row, 4 - h));
+  el.style.gridColumn = (col ? col : 'auto') + ' / span ' + w;
+  el.style.gridRow = (row ? row : 'auto') + ' / span ' + h;
   el.style.setProperty('--keycolor', k.color || '#34495e');
 
   if (k.image && k.image.length < 500000) {
