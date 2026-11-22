@@ -292,22 +292,59 @@ function edRenderItems() {
   });
 }
 
+function edAllControls() {
+  const out = [];
+  Object.keys(edLayout.profiles).forEach((page) => {
+    ((edLayout.profiles[page] || {}).keys || []).forEach((k) => {
+      out.push({ id: k.id, label: k.label || '(sin nombre)', page, type: k.type });
+    });
+  });
+  return out;
+}
+
 function edRenderBindings() {
   const host = ed('#edBindings');
   host.innerHTML = '';
+  const controls = edAllControls();
+
+  const addSel = ed('#edNewBind');
+  const old = addSel.value;
+  addSel.innerHTML = '<option value="">Elige un botón…</option>';
+  controls.filter((c) => !edBindings[c.id]).forEach((c) => {
+    const o = document.createElement('option');
+    o.value = c.id;
+    o.textContent = c.label + ' · ' + c.page;
+    addSel.appendChild(o);
+  });
+  addSel.value = old;
+
   Object.keys(edBindings).forEach((id) => {
     const b = edBindings[id] || {};
     const row = document.createElement('div');
     row.className = 'ed-bind';
     row.innerHTML =
-      '<input class="b-id" value="' + id + '" placeholder="id">' +
+      '<select class="b-id"></select>' +
       '<select class="b-type"><option>url</option><option>app</option><option>cmd</option>' +
       '<option>volume</option><option>media</option><option>key</option>' +
       '<option>volume_master</option><option>volume_app</option></select>' +
-      '<input class="b-value" value="' + (b.value || '') + '" placeholder="URL, app, tecla…">' +
+      '<input class="b-value" list="edValHints" value="' + (b.value || '') + '" placeholder="URL, app, tecla…">' +
       '<input class="b-level" value="' + (b.level != null ? b.level : '') + '" placeholder="nivel">' +
       '<button class="ed-del">✕</button>';
     row.querySelector('.b-type').value = b.type || 'url';
+
+    const idSel = row.querySelector('.b-id');
+    controls.forEach((c) => {
+      const o = document.createElement('option');
+      o.value = c.id;
+      o.textContent = c.label + ' · ' + c.page;
+      idSel.appendChild(o);
+    });
+    if (!controls.some((c) => c.id === id)) {
+      const o = document.createElement('option');
+      o.value = id; o.textContent = id + ' (sin control)';
+      idSel.appendChild(o);
+    }
+    idSel.value = id;
     const upd = (sel, field) => row.querySelector(sel).addEventListener('input', (ev) => {
       if (field === 'id') return;
       b[field] = ev.target.value;
