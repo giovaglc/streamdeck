@@ -371,8 +371,20 @@ function edNewItem(type) {
     icon: type === 'slider' ? '🔊' : '⭐', color: type === 'slider' ? '#2980b9' : '#6366f1',
     image: '', target: 'master', span: type === 'slider' ? 2 : 1 };
 }
-$('#edAddButton').onclick = () => { edKeys().push(edNewItem('button')); edRenderItems(); edRenderPreview(); edSave(); };
-$('#edAddSlider').onclick = () => { edKeys().push(edNewItem('slider')); edRenderItems(); edRenderPreview(); edSave(); };
+$('#edAddButton').onclick = () => {
+  const item = edNewItem('button');
+  edKeys().push(item);
+  edBindings[item.id] = { type: 'url', value: '' };
+  edSaveBindings();
+  edRenderItems(); edRenderPreview(); edSave();
+};
+$('#edAddSlider').onclick = () => {
+  const item = edNewItem('slider');
+  edKeys().push(item);
+  edBindings[item.id] = { type: 'volume_master' };
+  edSaveBindings();
+  edRenderItems(); edRenderPreview(); edSave();
+};
 
 $('#edAddBind').onclick = () => {
   const id = $('#edNewBind').value.trim();
