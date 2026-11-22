@@ -333,3 +333,13 @@ dialog::backdrop{backdrop-filter:blur(6px)}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
 }
+
+/* Reordenar controles */
+.ed-item .top{gap:5px;flex-wrap:nowrap}
+.ed-item .top b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ed-handle{cursor:grab;color:#7d879b;font-size:16px;line-height:1;user-select:none;padding-right:2px}
+.ed-handle:active{cursor:grabbing}
+.ed-move{padding:3px 7px;font-size:10px;background:rgba(255,255,255,.08);color:#aab6cc;border:1px solid var(--glass-line);border-radius:6px}
+.ed-move:hover{filter:brightness(1.3)}
+.ed-item.dragging{opacity:.45;transform:scale(.98)}
+.ed-item.over{outline:2px dashed #5b8def;outline-offset:2px;transform:translateY(-3px)}

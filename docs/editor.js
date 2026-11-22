@@ -6,6 +6,7 @@ let edPage = null;
 let edSaveTimer = null;
 let edBindTimer = null;
 let edTab = 'controls';
+let edDragIndex = null;
 
 const ed = (s) => document.querySelector(s);
 const edClone = (o) => JSON.parse(JSON.stringify(o));
@@ -112,8 +113,13 @@ function edRenderItems() {
   edKeys().forEach((item, idx) => {
     const card = document.createElement('div');
     card.className = 'ed-item';
+    card.draggable = true;
+    card.dataset.index = idx;
     card.innerHTML =
-      '<div class="top"><b>' + (item.label || 'Sin nombre') + '</b>' +
+      '<div class="top"><span class="ed-handle" title="Arrastra para ordenar">⠿</span>' +
+      '<b>' + (item.label || 'Sin nombre') + '</b>' +
+      '<button class="ed-move" data-dir="-1" title="Mover a la izquierda">◀</button>' +
+      '<button class="ed-move" data-dir="1" title="Mover a la derecha">▶</button>' +
       '<button class="ed-del">✕</button></div>' +
       '<div class="ed-row"><div class="mini" style="background:' + (item.color || '#34495e') + '">' +
       (item.icon || '•') + '</div><input class="ed-label" value="' + (item.label || '') + '" placeholder="Etiqueta"></div>' +
@@ -178,6 +184,48 @@ function edRenderItems() {
       edKeys().splice(idx, 1);
       edRenderItems(); edRenderPreview(); edSave();
     };
+
+    // Mover con flechas (funciona también en móvil)
+    card.querySelectorAll('.ed-move').forEach((btn) => {
+      btn.onclick = () => {
+        const keys = edKeys();
+        const to = idx + Number(btn.dataset.dir);
+        if (to < 0 || to >= keys.length) return;
+        const [moved] = keys.splice(idx, 1);
+        keys.splice(to, 0, moved);
+        edRenderItems(); edRenderPreview(); edSave();
+      };
+    });
+
+    // Arrastrar y soltar para reordenar
+    card.addEventListener('dragstart', (ev) => {
+      edDragIndex = idx;
+      card.classList.add('dragging');
+      ev.dataTransfer.effectAllowed = 'move';
+      ev.dataTransfer.setData('text/plain', String(idx));
+    });
+    card.addEventListener('dragend', () => {
+      edDragIndex = null;
+      card.classList.remove('dragging');
+      host.querySelectorAll('.over').forEach((x) => x.classList.remove('over'));
+    });
+    card.addEventListener('dragover', (ev) => {
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = 'move';
+      card.classList.add('over');
+    });
+    card.addEventListener('dragleave', () => card.classList.remove('over'));
+    card.addEventListener('drop', (ev) => {
+      ev.preventDefault();
+      card.classList.remove('over');
+      if (edDragIndex === null || edDragIndex === idx) return;
+      const keys = edKeys();
+      const [moved] = keys.splice(edDragIndex, 1);
+      keys.splice(idx, 0, moved);
+      edDragIndex = null;
+      edRenderItems(); edRenderPreview(); edSave();
+    });
+
     host.appendChild(card);
   });
 }
