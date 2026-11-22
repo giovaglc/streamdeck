@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0f1115"><title>Stream Deck</title>
+<link rel="stylesheet" href="styles.css"></head><body>
+
+<!-- emparejar -->
+<section id="pairView" class="view">
+  <div class="login-card">
+    <div class="login-logo">🎛️</div><h1>Stream Deck</h1>
+    <p class="sub">Conexión directa con tu portátil. Pon el código que aparece en la pantalla del PC.</p>
+    <label>Código de 6 dígitos</label>
+    <input id="code" type="text" inputmode="numeric" maxlength="6" placeholder="000000">
+    <button id="pairBtn" class="primary">Conectar</button>
+    <p id="pairMsg" class="error"></p>
+  </div>
+</section>
+
+<!-- deck -->
+<section id="deckView" class="view hidden">
+  <div id="topbar">
+    <div class="brand">🎛️ <span id="pageName">Stream Deck</span></div>
+    <div class="top-actions"><span id="presence" class="presence">● PC</span>
+      <button id="editBtn" class="icon-btn">✏️</button>
+      <button id="settingsBtn" class="icon-btn">⚙️</button></div>
+  </div>
+  <div id="grid" class="grid"></div>
+</section>
+
+<!-- editor -->
+<section id="editorView" class="view editor hidden">
+  <div class="ed-head"><button id="edBack" class="ed-back">← Ver deck</button>
+    <div class="ed-brand">✏️ Editor <span id="edStatus" class="ed-status">Guardado ✓</span></div></div>
+  <div class="ed-body">
+    <aside class="ed-side">
+      <div class="ed-card"><h3>Páginas</h3><div id="edPages" class="ed-pages"></div>
+        <div class="ed-row"><input id="edNewPage" placeholder="Nombre"><button id="edAddPage" class="ed-add">+</button></div>
+        <div class="ed-row"><button id="edRenamePage" class="ed-soft">Renombrar</button><button id="edDeletePage" class="ed-soft danger">Borrar</button></div>
+      </div>
+      <div class="ed-card"><h3>Apariencia</h3><label>Color de fondo</label>
+        <div class="ed-row"><input type="color" id="edBg"><span id="edBgHex" class="ed-hint"></span></div>
+        <div id="edPresets" class="ed-presets"></div></div>
+      <div class="ed-card"><h3>Vista previa</h3><div id="edPreview" class="ed-preview"></div>
+        <p class="ed-hint">Arrastra una ficha a cualquier casilla.</p></div>
+    </aside>
+    <main class="ed-main">
+      <div class="ed-tabs"><button data-tab="controls" class="on">🎛️ Controles</button>
+        <button data-tab="bindings">⚡ Funciones</button></div>
+      <div id="tab-controls" class="ed-tab">
+        <div class="ed-row"><button id="edAddButton" class="ed-add">+ Botón</button>
+          <button id="edAddSlider" class="ed-add">+ Deslizador</button>
+          <span class="ed-hint">Guarda solo ✨</span></div>
+        <div id="edItems" class="ed-items"></div></div>
+      <div id="tab-bindings" class="ed-tab hidden">
+        <p class="ed-hint">Elige el botón por su nombre y pon qué hace. <b>media</b>: next/prev/playpause/mute · <b>app</b>: ruta o spotify: · <b>key</b>: ctrl+shift+p.</p>
+        <div id="edBindings" class="ed-bindings"></div>
+        <div class="ed-row"><select id="edNewBind"><option value="">Elige un botón…</option></select><button id="edAddBind" class="ed-add">+ Añadir</button></div>
+      </div>
+    </main>
+  </div>
+</section>
+
+<dialog id="settingsDlg">
+  <div class="dlg-title">⚙️ Ajustes</div>
+  <p class="hint">Conectado directamente al portátil por WiFi. Sin cuenta ni login.</p>
+  <div class="row"><button id="logoutBtn" class="ghost">Olvidar dispositivo</button><button id="closeSettings" class="ghost">Cerrar</button></div>
+</dialog>
+
+<script src="app.js"></script></body></html>

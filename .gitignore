@@ -10,6 +10,7 @@ pc/*.log
 daemon_run.log
 *.pid
 *.lock
+pc/local_state.json
 
 # Python
 __pycache__/

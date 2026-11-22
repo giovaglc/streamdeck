@@ -1,51 +1,56 @@
-﻿# 🎛️ Stream Deck: móvil → portátil Windows (gratis)
+﻿# 🎛️ Stream Deck LOCAL (rápido, sin login)
 
-- **Web:** editor y Stream Deck con login (GitHub Pages). Cada cuenta ve su propio deck.
-- **PC:** `deck_daemon.py` ejecuta acciones y controla el volumen.
-- **Firebase:** Spark gratis, Auth + Realtime Database.
+El móvil habla **directamente con el portátil por WiFi**. No hay Firebase, no hay
+login y no pasa nada por una base de datos. Latencia real medida: **~3 ms**.
 
-Web: **https://giovaglc.github.io/streamdeck/**
+## Arrancar
 
-## Conectar el PC desde la web (cualquier usuario)
+Doble clic en **`pc/Iniciar Stream Deck.bat`**.
 
-1. **Una sola vez** en el portátil: doble clic en `pc/Registrar protocolo.bat`.
-   Eso registra el protocolo `streamdeck://` que permite a la web abrir el daemon.
-2. Crea tu configuración: copia `pc/config.example.json` a `pc/config-<tu-nombre>.json`
-   y pon tu correo y contraseña de Firebase.
-3. En la web, ⚙️ → **Conectar PC desde la web** → pega la ruta de **tu** `.json`
-   → **Guardar ruta**.
-4. Pulsa **🚀 Conectar PC**. Arranca tu daemon con tu cuenta.
-
-El botón es el mismo para todos: cada usuario pone su propia ruta. Cada cuenta
-tiene su propio layout y sus funciones en `bindings-<nombre>.json`. Los datos
-están separados por UID de Firebase.
-
-Para parar el daemon, cierra su ventana o pulsa Ctrl+C.
-
-## Uso
-
-- En el móvil: rejilla **7 × 3** en horizontal; botones y deslizadores verticales.
-- ⚙️ en la web: rol Envío/Recepción, ruta de configuración, cambiar contraseña, salir.
-- ✏️ en la web: editor visual (páginas, colores, imágenes, tamaños 1/2/4, funciones).
-- Las páginas las activa el editor; el móvil muestra solo lo que dice el PC.
-
-## Datos
+Se abre un servidor en el PC. En la misma ventana verás:
 
 ```
-decks/<uid>/
-  layout          ← editor web
-  bindings        ← funciones del usuario
-  audio / desiredAudio / presence / commands
-  settings/configPath  ← ruta del .json de ese usuario
+Móvil (misma WiFi): http://192.168.x.x:8000
+Panel del PC:       http://localhost:8000/admin
+Código: 123456
 ```
 
-## Coste
+## Emparejar el móvil (una sola vez)
 
-Todo gratis: GitHub Pages, Firebase Spark, Python. Sin túneles ni tarjeta.
-El PC debe estar encendido y con el daemon corriendo.
+1. Abre en el móvil la IP que te sale: `http://192.168.x.x:8000`.
+2. Pon el **código de 6 dígitos** que aparece en `/admin` (o en la ventana).
+3. Listo: el token se guarda en el móvil y no vuelve a pedir login.
 
-## Problemas
+## Usar
 
-- **No conecta:** revisa la ruta en ⚙️ y que el protocolo esté registrado (`Registrar protocolo.bat`).
-- **PC desconectado:** el daemon de esa cuenta no está corriendo.
-- **Sliders sin efecto:** `pip install -r pc/requirements.txt` y reinicia.
+- Rejilla **7×3** en horizontal, botones metálicos, deslizadores verticales.
+- **✏️** edita páginas, colores, imágenes, tamaños 1/2/4, posición y funciones.
+- **⚙️** permite olvidar el dispositivo.
+- Los cambios viajan por **Server-Sent Events**, así que el móvil se actualiza al instante.
+
+## Funciones
+
+En **✏️ → Funciones** eliges el botón por su nombre y pones qué hace:
+
+| Tipo | Valor |
+|---|---|
+| `url` | `https://www.youtube.com` |
+| `app` | ruta del `.exe` o `spotify:` |
+| `cmd` | comando de Windows |
+| `media` | `next`, `prev`, `playpause`, `mute` |
+| `key` | `ctrl+shift+p` |
+| `volume_master` / `volume_app` | nivel (o proceso) |
+
+El daemon lee las funciones de `pc/local_state.json` (archivo ignorado por Git).
+
+## Requisitos
+
+- Mismo WiFi en móvil y portátil.
+- Python + `pip install -r pc/requirements.txt`.
+- El PC debe estar encendido con el servidor corriendo.
+
+## Notas
+
+- Usa la **IP del PC** en el móvil (no `localhost`, que en el móvil sería el propio móvil).
+- `http://localhost:8000/admin` muestra el código y los dispositivos emparejados.
+- El puerto 8000 solo se usa en tu red local.
