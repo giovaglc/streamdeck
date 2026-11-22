@@ -17,6 +17,7 @@ import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import psutil
 import requests
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -224,9 +225,20 @@ def run_action(action):
         elif t == "key":
             send_combo(v)
         elif t == "volume_master":
-            set_master_volume(int(action.get("level", v if v != "" else 50)))
+            raw = action.get("level", v)
+            if str(raw).strip().lower() in ("mute", "silenciar"):
+                tap(SPECIAL["mute"])
+            else:
+                try:
+                    set_master_volume(int(raw))
+                except Exception:
+                    set_master_volume(50)
         elif t == "volume_app":
-            set_app_volume(v, int(action.get("level", 50)))
+            try:
+                level = int(action.get("level", 50))
+            except Exception:
+                level = 50
+            set_app_volume(v, level)
         else:
             print("[accion] tipo desconocido:", t)
     except Exception as exc:
@@ -450,6 +462,18 @@ def load_bindings():
 def main():
     global CONFIG_PATH, BINDINGS_PATH
 
+    # Evitar dos daemons con la misma configuración (duplican acciones)
+    lock = os.path.join(BASE_DIR, "daemon.lock")
+    try:
+        pid = int(open(lock).read().strip())
+        if pid != os.getpid() and psutil.pid_exists(pid):
+            print("[lock] ya hay un daemon corriendo (PID %d). Salgo." % pid)
+            return
+    except Exception:
+        pass
+    with open(lock, "w") as f:
+        f.write(str(os.getpid()))
+
     # Permitir varios daemons en el mismo PC: uno por cuenta.
     #   python deck_daemon.py --config config-mama.json
     config_arg = None
@@ -540,7 +564,7 @@ def main():
                 key_id = payload.get("keyId")
                 action = bindings.get(key_id)
                 if action:
-                    print("[▶]", key_id, "->", action.get("type"))
+                    print("[▶]", key_id, "->", json.dumps(action, ensure_ascii=False))
                     run_action(action)
                 else:
                     print("[!] botón sin función:", key_id)

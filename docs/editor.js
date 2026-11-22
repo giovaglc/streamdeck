@@ -7,6 +7,7 @@ let edSaveTimer = null;
 let edBindTimer = null;
 let edTab = 'controls';
 let edDragIndex = null;
+let edBindDirty = {};
 
 const ed = (s) => document.querySelector(s);
 const edClone = (o) => JSON.parse(JSON.stringify(o));
@@ -21,6 +22,7 @@ function openEditor() {
   if (!deckRef || !state.layout) return;
   edLayout = edClone(state.layout);
   edBindings = edClone(state.bindings || {});
+  edBindDirty = {};
   edPage = edLayout.active;
   $('#deckView').classList.add('hidden');
   $('#loginView').classList.add('hidden');
@@ -46,13 +48,29 @@ function edSave() {
   }, 250);
 }
 
+function edMarkBind(id) {
+  edBindDirty[id] = edBindings[id] === undefined ? null : edBindings[id];
+}
+
 function edSaveBindings() {
   edStatus('Guardando…', true);
   clearTimeout(edBindTimer);
   edBindTimer = setTimeout(async () => {
-    await deckRef.child('bindings').set(edBindings);
-    state.bindings = edClone(edBindings);
-    edStatus('Guardado ✓');
+    const patch = {};
+    Object.keys(edBindDirty).forEach((k) => { patch[k] = edBindDirty[k]; });
+    edBindDirty = {};
+    if (!Object.keys(patch).length) { edStatus('Guardado ✓'); return; }
+    try {
+      await deckRef.child('bindings').update(patch);
+      if (!state.bindings) state.bindings = {};
+      Object.keys(patch).forEach((k) => {
+        if (patch[k] === null) { delete state.bindings[k]; delete edBindings[k]; }
+        else state.bindings[k] = patch[k];
+      });
+      edStatus('Guardado ✓');
+    } catch (e) {
+      edStatus('Error al guardar');
+    }
   }, 250);
 }
 
@@ -293,19 +311,30 @@ function edRenderBindings() {
     const upd = (sel, field) => row.querySelector(sel).addEventListener('input', (ev) => {
       if (field === 'id') return;
       b[field] = ev.target.value;
+      edMarkBind(id);
       edSaveBindings();
     });
     upd('.b-value', 'value');
     upd('.b-level', 'level');
-    row.querySelector('.b-type').addEventListener('change', (ev) => { b.type = ev.target.value; edSaveBindings(); });
+    row.querySelector('.b-type').addEventListener('change', (ev) => {
+      b.type = ev.target.value;
+      edMarkBind(id);
+      edSaveBindings();
+    });
     row.querySelector('.b-id').addEventListener('change', (ev) => {
       const nid = ev.target.value.trim();
       if (!nid || nid === id) return;
       delete edBindings[id];
       edBindings[nid] = b;
+      edBindDirty[id] = null;
+      edBindDirty[nid] = b;
       edSaveBindings(); edRenderBindings();
     });
-    row.querySelector('.ed-del').onclick = () => { delete edBindings[id]; edSaveBindings(); edRenderBindings(); };
+    row.querySelector('.ed-del').onclick = () => {
+      delete edBindings[id];
+      edBindDirty[id] = null;
+      edSaveBindings(); edRenderBindings();
+    };
     host.appendChild(row);
   });
 }
@@ -375,6 +404,7 @@ $('#edAddButton').onclick = () => {
   const item = edNewItem('button');
   edKeys().push(item);
   edBindings[item.id] = { type: 'url', value: '' };
+  edMarkBind(item.id);
   edSaveBindings();
   edRenderItems(); edRenderPreview(); edSave();
 };
@@ -382,6 +412,7 @@ $('#edAddSlider').onclick = () => {
   const item = edNewItem('slider');
   edKeys().push(item);
   edBindings[item.id] = { type: 'volume_master' };
+  edMarkBind(item.id);
   edSaveBindings();
   edRenderItems(); edRenderPreview(); edSave();
 };
@@ -391,6 +422,7 @@ $('#edAddBind').onclick = () => {
   if (!id) return;
   edBindings[id] = { type: 'url', value: '' };
   $('#edNewBind').value = '';
+  edMarkBind(id);
   edRenderBindings(); edSaveBindings();
 };
 

@@ -9,6 +9,7 @@ pc/bindings-*.json
 pc/*.log
 daemon_run.log
 *.pid
+*.lock
 
 # Python
 __pycache__/
