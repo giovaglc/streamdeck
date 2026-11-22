@@ -3,9 +3,14 @@
 El móvil habla **directamente con el portátil por WiFi**. No hay Firebase, no hay
 login y no pasa nada por una base de datos. Latencia real medida: **~3 ms**.
 
-## Arrancar
+## Dos accesos en el escritorio
 
-Doble clic en **`pc/Iniciar Stream Deck.bat`**.
+- **Stream Deck (casa)** → modo local por WiFi, sin Firebase ni login. Úsalo en casa.
+- **Stream Deck (fuera)** → abre la web de GitHub Pages. Úsalo cuando estés fuera de casa.
+
+## Arrancar en casa
+
+Doble clic en **`pc/Iniciar Stream Deck.bat`** (o en el acceso *Stream Deck (casa)*).
 
 Se abre un servidor en el PC. En la misma ventana verás:
 
