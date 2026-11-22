@@ -1,6 +1,6 @@
 {
   "youtube":  { "type": "url", "value": "https://www.youtube.com" },
-  "spotify":  { "type": "url", "value": "https://open.spotify.com" },
+  "spotify":  { "type": "app", "value": "C:\\Users\\gioca\\AppData\\Roaming\\Spotify\\Spotify.exe" },
   "explorer": { "type": "app", "value": "explorer.exe" },
   "playpause": { "type": "media", "value": "playpause" },
   "next":     { "type": "media", "value": "next" },
