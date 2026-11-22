@@ -10,7 +10,9 @@ login y no pasa nada por una base de datos. Latencia real medida: **~3 ms**.
 
 ## Arrancar en casa
 
-Doble clic en **`pc/Iniciar Stream Deck.bat`** (o en el acceso *Stream Deck (casa)*).
+El servidor local **arranca solo al encentrar Windows** (lo dejé en el Inicio mediante
+el registro de Windows, así Norton no puede borrar el lanzador). Si no está activo,
+ejecuta en `pc/`: `python deck_local.py`.
 
 Se abre un servidor en el PC. En la misma ventana verás:
 
