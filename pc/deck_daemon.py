@@ -109,6 +109,47 @@ def handle_volume_steps(value):
 
 
 # ---------------------------------------------------------------- volumen real
+def _mic_endpoint():
+    device = AudioUtilities.GetMicrophone()
+    return device.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None) \
+                  .QueryInterface(IAudioEndpointVolume)
+
+
+def mic_state():
+    """Devuelve (volumen 0-100, silenciado) del micro por defecto."""
+    if not PYCAW:
+        return None, False
+    try:
+        ep = _mic_endpoint()
+        return round(ep.GetMasterVolumeLevelScalar() * 100), bool(ep.GetMute())
+    except Exception as exc:
+        print("[audio] micro:", type(exc).__name__, str(exc)[:80])
+        return None, False
+
+
+def set_mic_volume(level):
+    if not PYCAW:
+        return False
+    try:
+        _mic_endpoint().SetMasterVolumeLevelScalar(max(0, min(100, int(level))) / 100.0, None)
+        return True
+    except Exception as exc:
+        print("[audio] set micro:", type(exc).__name__, str(exc)[:80])
+        return False
+
+
+def toggle_mic_mute():
+    if not PYCAW:
+        return False
+    try:
+        ep = _mic_endpoint()
+        ep.SetMute(0 if ep.GetMute() else 1, None)
+        return True
+    except Exception as exc:
+        print("[audio] mute micro:", type(exc).__name__, str(exc)[:80])
+        return False
+
+
 def _master_endpoint():
     """Compatible con pycaw antiguo y nuevo (AudioDevice.EndpointVolume)."""
     device = AudioUtilities.GetSpeakers()
@@ -197,7 +238,9 @@ def real_audio_state():
     apps = {}
     for low, (_real, _ctl, vol) in audio_sessions().items():
         apps[low] = vol
-    return {"master": get_master_volume(), "apps": apps}
+    mic_vol, mic_muted = mic_state()
+    return {"master": get_master_volume(), "apps": apps,
+            "mic": mic_vol, "micMuted": mic_muted}
 
 
 # ---------------------------------------------------------------- acciones
@@ -239,6 +282,14 @@ def run_action(action):
             except Exception:
                 level = 50
             set_app_volume(v, level)
+        elif t == "volume_mic":
+            raw = action.get("level", v)
+            try:
+                set_mic_volume(int(raw))
+            except Exception:
+                set_mic_volume(50)
+        elif t == "mic_mute":
+            toggle_mic_mute()
         else:
             print("[accion] tipo desconocido:", t)
     except Exception as exc:
@@ -461,6 +512,10 @@ def load_bindings():
 # ---------------------------------------------------------------- bucle
 def main():
     global CONFIG_PATH, BINDINGS_PATH
+    try:
+        ctypes.windll.ole32.CoInitialize(None)
+    except Exception:
+        pass
 
     # Evitar dos daemons con la misma configuración (duplican acciones)
     lock = os.path.join(BASE_DIR, "daemon.lock")
@@ -540,6 +595,10 @@ def main():
                 if last_applied.get(key) != level:
                     if set_app_volume(proc, int(level)):
                         last_applied[key] = level
+            mic = desired.get("mic")
+            if mic is not None and last_applied.get("mic") != mic:
+                set_mic_volume(int(mic))
+                last_applied["mic"] = mic
 
             if now - last_audio_publish > 2.0:
                 actual = real_audio_state()

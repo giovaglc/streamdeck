@@ -130,7 +130,8 @@ function makeKey(k) {
     const lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = k.label || '';
     content.append(ico, wrap, lbl); el.appendChild(content);
     const audio = state.audio || {};
-    let v = (input.dataset.target === 'master') ? audio.master : (audio.apps || {})[input.dataset.target];
+    const t = input.dataset.target;
+    let v = t === 'master' ? audio.master : (t === 'mic' ? audio.mic : (audio.apps || {})[t]);
     if (v == null) v = 0;
     input.value = Math.round(v);
     fill(input);
@@ -162,7 +163,9 @@ let desired = null;
 function setDesired(target, value) {
   if (!desired) desired = clone(state.audio || { master: 50, apps: {} });
   if (!desired.apps) desired.apps = {};
-  if (target === 'master') desired.master = value; else desired.apps[target] = value;
+  if (target === 'master') desired.master = value;
+  else if (target === 'mic') desired.mic = value;
+  else desired.apps[target] = value;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => api('/api/audio', 'POST', desired), 90);
 }
@@ -349,7 +352,7 @@ function renderBindings() {
     const row = document.createElement('div'); row.className = 'ed-bind';
     row.innerHTML = '<select class="b-id"></select>' +
       '<select class="b-type"><option>url</option><option>app</option><option>cmd</option><option>volume</option>' +
-      '<option>media</option><option>key</option><option>volume_master</option><option>volume_app</option></select>' +
+      '<option>media</option><option>key</option><option>volume_master</option><option>volume_app</option><option>volume_mic</option><option>mic_mute</option></select>' +
       '<input class="b-value" value="' + (b.value || '') + '" placeholder="URL, app, tecla…">' +
       '<input class="b-level" value="' + (b.level != null ? b.level : '') + '" placeholder="nivel">' +
       '<button class="ed-del">✕</button>';

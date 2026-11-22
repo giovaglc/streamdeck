@@ -6,6 +6,7 @@ acciones y manda cambios al móvil por Server-Sent Events.
 
 El móvil se empareja una sola vez con el código que muestra /admin.
 """
+import ctypes
 import json
 import os
 import queue
@@ -36,6 +37,8 @@ DEFAULT_LAYOUT = {
             {"id": "master", "type": "slider", "label": "Volumen", "icon": "🔊", "color": "#2980b9", "image": "", "target": "master", "span": 2},
             {"id": "sp_vol", "type": "slider", "label": "Vol Spotify", "icon": "🎵", "color": "#1db954", "image": "", "target": "Spotify.exe", "span": 2},
             {"id": "mute", "type": "button", "label": "Silenciar", "icon": "🔇", "color": "#7f8c8d", "image": "", "span": 1},
+            {"id": "mic", "type": "slider", "label": "Micro", "icon": "🎤", "color": "#0ea5e9", "image": "", "target": "mic", "span": 2},
+            {"id": "mic_mute", "type": "button", "label": "Mute micro", "icon": "🎙️", "color": "#0ea5e9", "image": "", "span": 1},
             {"id": "lock", "type": "button", "label": "Bloquear", "icon": "🔒", "color": "#c0392b", "image": "", "span": 1},
         ]},
     },
@@ -53,6 +56,8 @@ DEFAULT_BINDINGS = {
     "cmd": {"type": "app", "value": "cmd.exe"},
     "master": {"type": "volume_master"},
     "sp_vol": {"type": "volume_app", "value": "Spotify.exe", "level": 70},
+    "mic": {"type": "volume_mic"},
+    "mic_mute": {"type": "mic_mute"},
 }
 
 
@@ -100,8 +105,16 @@ def broadcast():
             pass
 
 
+def com_init():
+    try:
+        ctypes.windll.ole32.CoInitialize(None)
+    except Exception:
+        pass
+
+
 def audio_loop():
     global last_applied
+    com_init()
     while True:
         try:
             desired = STATE.get("desiredAudio") or {}
@@ -114,6 +127,10 @@ def audio_loop():
                 if last_applied.get(key) != level:
                     if core.set_app_volume(proc, int(level)):
                         last_applied[key] = level
+            mic = desired.get("mic")
+            if mic is not None and last_applied.get("mic") != mic:
+                core.set_mic_volume(int(mic))
+                last_applied["mic"] = mic
             actual = core.real_audio_state()
             if actual != STATE.get("audio"):
                 STATE["audio"] = actual
@@ -220,6 +237,7 @@ class H(BaseHTTPRequestHandler):
 
     def do_POST(self):
         from urllib.parse import urlparse
+        com_init()
         path = urlparse(self.path).path
         try:
             data = self._body()

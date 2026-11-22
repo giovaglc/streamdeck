@@ -436,7 +436,7 @@ function edRenderBindings() {
       '<select class="b-id"></select>' +
       '<select class="b-type"><option>url</option><option>app</option><option>cmd</option>' +
       '<option>volume</option><option>media</option><option>key</option>' +
-      '<option>volume_master</option><option>volume_app</option></select>' +
+      '<option>volume_master</option><option>volume_app</option><option>volume_mic</option><option>mic_mute</option></select>' +
       '<input class="b-value" list="edValHints" value="' + (b.value || '') + '" placeholder="URL, app, tecla…">' +
       '<input class="b-level" value="' + (b.level != null ? b.level : '') + '" placeholder="nivel">' +
       '<button class="ed-del">✕</button>';

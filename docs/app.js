@@ -38,6 +38,8 @@ const DEFAULT_LAYOUT = {
         { id: 'sp_vol', type: 'slider', label: 'Spotify', icon: '🎵', color: '#1db954', image: '', target: 'Spotify.exe', span: 2 },
         { id: 'explorer', type: 'button', label: 'Archivos', icon: '📁', color: '#f39c12', image: '', span: 1 },
         { id: 'mute', type: 'button', label: 'Silenciar', icon: '🔇', color: '#7f8c8d', image: '', span: 1 },
+        { id: 'mic', type: 'slider', label: 'Micro', icon: '🎤', color: '#0ea5e9', image: '', target: 'mic', span: 2 },
+        { id: 'mic_mute', type: 'button', label: 'Mute micro', icon: '🎙️', color: '#0ea5e9', image: '', span: 1 },
         { id: 'lock', type: 'button', label: 'Bloquear', icon: '🔒', color: '#c0392b', image: '', span: 1 }
       ]
     }
@@ -301,8 +303,10 @@ function updateSliderValues() {
   document.querySelectorAll('.vslider input').forEach((input) => {
     const t = input.dataset.target;
     const key = safeKey(t);
-    let v = t === 'master' ? audio.master : (audio.apps || {})[key];
-    if (v == null) v = t === 'master' ? desired.master : (desired.apps || {})[key];
+    const isMaster = t === 'master';
+    const isMic = t === 'mic';
+    let v = isMaster ? audio.master : (isMic ? audio.mic : (audio.apps || {})[key]);
+    if (v == null) v = isMaster ? desired.master : (isMic ? desired.mic : (desired.apps || {})[key]);
     if (v == null) v = 0;
     if (!input.dataset.dragging) {
       input.value = Math.round(v);
@@ -342,6 +346,7 @@ function setDesired(target, value) {
   if (!state.desiredAudio) state.desiredAudio = { master: 0, apps: {} };
   if (!state.desiredAudio.apps) state.desiredAudio.apps = {};
   if (target === 'master') state.desiredAudio.master = value;
+  else if (target === 'mic') state.desiredAudio.mic = value;
   else state.desiredAudio.apps[safeKey(target)] = value;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
